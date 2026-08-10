@@ -24,7 +24,7 @@ from flask import (
 from ai_planner import camlari_sirala, gunluk_kesim_plani
 from auth import login_required, oturum_ac, oturum_kullanicisi, role_required
 from backup import otomatik_yedek_baslat, yedek_al, yedekleri_listele, yedekten_geri_yukle
-from config import APP_TITLE, APP_VERSION, BOLUM_KAPASITELERI, FIRE_NEDENLERI, SECRET_KEY, TUM_MAKINELER, WEB_HOST, WEB_PORT
+from config import APP_TITLE, APP_VERSION, BEHIND_PROXY, BOLUM_KAPASITELERI, FIRE_NEDENLERI, FIREBASE_SYNC_ON_ISTASYON, SECRET_KEY, SITE_DOMAIN, TUM_MAKINELER, WEB_HOST, WEB_PORT
 from database import (
     asama_hareket_ekle,
     asama_ozet,
@@ -73,13 +73,43 @@ app = Flask(__name__)
 app.config["JSON_AS_ASCII"] = False
 app.secret_key = SECRET_KEY
 
+if BEHIND_PROXY:
+    from werkzeug.middleware.proxy_fix import ProxyFix
+
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+if SITE_DOMAIN:
+    app.config["SESSION_COOKIE_SECURE"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
 _son_cizelge: dict | None = None
+
+
+def _site_base_url() -> str:
+    """QR ve dış linkler için temel URL (domain veya istekten)."""
+    domain = (SITE_DOMAIN or "").strip().rstrip("/")
+    if domain:
+        if domain.startswith("http://") or domain.startswith("https://"):
+            return domain.rstrip("/")
+        return f"https://{domain}"
+    return request.host_url.rstrip("/")
 
 
 def _kullanici_log(islem: str, detay: str = "", hedef_id: str = ""):
     k = oturum_kullanicisi()
     if k:
         log_ekle(k["kullanici_adi"], islem, detay, hedef_id)
+
+
+def _istasyon_sync_tetikle() -> None:
+    """İstasyon Kaydet/Onayla sonrası — arka planda tek seferlik senkron (sürekli değil)."""
+    if not FIREBASE_SYNC_ON_ISTASYON:
+        return
+    try:
+        from sync import sync_trigger_async
+        sync_trigger_async("istasyon")
+    except Exception:
+        pass
 
 
 def _plan_to_dict(kayit) -> dict:
@@ -747,6 +777,7 @@ def api_asama_hareket(siparis_id):
                 + (f" | UYARI: {ozet.get('uyari')}" if ozet.get("uyari") else ""),
                 siparis_id,
             )
+            _istasyon_sync_tetikle()
             return jsonify(ozet)
 
         ozet = asama_hareket_ekle(
@@ -768,6 +799,7 @@ def api_asama_hareket(siparis_id):
         )
         sip = siparis_getir(siparis_id)
         ozet["plaka"] = _siparis_plaka_baglam(sip)
+        _istasyon_sync_tetikle()
         return jsonify(ozet)
     except ValueError as e:
         return jsonify({"hata": str(e)}), 400
@@ -883,7 +915,7 @@ def api_qr(siparis_id):
     sip = siparis_getir(siparis_id)
     if not sip:
         return jsonify({"hata": "Bulunamadı."}), 404
-    url = request.host_url.rstrip("/") + url_for("sevk_sayfa", siparis_id=siparis_id)
+    url = _site_base_url() + url_for("sevk_sayfa", siparis_id=siparis_id)
     cache_dir = os.path.join("yedekler", "qr_cache")
     os.makedirs(cache_dir, exist_ok=True)
     safe = "".join(ch if ch.isalnum() else "_" for ch in str(siparis_id))[:80]
@@ -1632,6 +1664,41 @@ def api_version():
     return jsonify({"version": APP_VERSION, "title": APP_TITLE})
 
 
+@app.route("/api/sync/durum")
+@login_required
+def api_sync_durum():
+    try:
+        from sync import sync_durum
+        return jsonify(sync_durum())
+    except Exception as e:
+        return jsonify({"ok": False, "mesaj": str(e), "online": False}), 500
+
+
+@app.route("/api/sync/now", methods=["POST"])
+@login_required
+@role_required("admin", "ofis", "saha")
+def api_sync_now():
+    try:
+        from sync import sync_now
+        v = request.get_json(silent=True) or {}
+        sonuc = sync_now(force_queue_all=bool(v.get("force_queue_all")))
+        return jsonify(sonuc)
+    except Exception as e:
+        return jsonify({"ok": False, "mesaj": str(e)}), 500
+
+
+@app.route("/api/sync/seed", methods=["POST"])
+@login_required
+@role_required("admin", "ofis")
+def api_sync_seed():
+    """Yerel tüm sipariş/hareketleri byc/v1 temiz şemaya yazar (mobil/web kaynağı)."""
+    try:
+        from sync import seed_tum_veriler
+        return jsonify(seed_tum_veriler())
+    except Exception as e:
+        return jsonify({"ok": False, "mesaj": str(e)}), 500
+
+
 # ── Başlat ───────────────────────────────────────────────────
 
 def baslat():
@@ -1639,6 +1706,11 @@ def baslat():
     init_db()
     _son_cizelge = cizelge_son_getir()
     otomatik_yedek_baslat()
+    try:
+        from sync import sync_worker_baslat
+        sync_worker_baslat()
+    except Exception as e:
+        print(f"  [sync] worker başlatılamadı: {e}")
     try:
         yedek_al()
     except Exception:
@@ -1651,8 +1723,10 @@ def baslat():
     print(f"\n{'='*55}")
     print(f"  {APP_TITLE} v{APP_VERSION}")
     print(f"{'='*55}")
-    proto = "https" if use_ssl else "http"
+    proto = "https" if use_ssl or SITE_DOMAIN else "http"
     print(f"  Bilgisayar:  {proto}://localhost:{WEB_PORT}")
+    if SITE_DOMAIN:
+        print(f"  Canlı site:  https://{SITE_DOMAIN.strip().rstrip('/')}")
     print(f"  Ağ/Tablet:   {proto}://[IP-ADRESINIZ]:{WEB_PORT}")
     print(f"  Mobil:       {proto}://[IP-ADRESINIZ]:{WEB_PORT}/mobile")
     print(f"{'='*55}")

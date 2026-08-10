@@ -2,7 +2,7 @@
 
 APP_TITLE = "BYC Endüstriyel Üretim Çizelgeleme ve Dar Boğaz Yönetimi"
 PLAKA_UYARI_ESIK = 10  # Bu adet ve altı → düşük stok uyarısı
-APP_VERSION = "8.2.1"
+APP_VERSION = "8.3.2"
 DATA_FILE = "planlanan_isler.json"
 SETTINGS_FILE = "ayarlar.json"
 DB_FILE = "uretim.db"
@@ -10,6 +10,28 @@ BACKUP_DIR = "yedekler"
 WEB_HOST = "0.0.0.0"
 WEB_PORT = 5000
 SECRET_KEY = "byc-uretim-gizli-anahtar-degistirin"  # Üretimde değiştirin
+
+# Canlı domain (byc.net.tr) — boş bırakılırsa istekten otomatik alınır.
+# QR kodlar ve dış bağlantılar için: "byc.net.tr"
+SITE_DOMAIN = "byc.net.tr"
+# Reverse proxy (Cloudflare Tunnel, Nginx, Caddy) arkasında çalışıyorsa True
+BEHIND_PROXY = True
+
+# Firebase / Firestore senkron (sipariş + aşama hareket)
+# Kurulum: FIREBASE_KURULUM.md — JSON anahtar dosyasını proje köküne koyun.
+FIREBASE_ENABLED = True
+FIREBASE_CREDENTIALS_PATH = "firebase-service-account.json"
+FIREBASE_PROJECT_ID = ""  # Boşsa JSON içindeki project_id kullanılır
+# Temiz mobil/web yolu: byc / v1 / siparisler / {id} / hareketler / {uid}
+FIREBASE_ROOT = "byc"
+FIREBASE_SCHEMA_VERSION = "v1"
+FIREBASE_COLLECTION_SIPARISLER = "siparisler"
+FIREBASE_COLLECTION_HAREKETLER = "hareketler"
+# Sürekli arka plan senkron KAPALI (0). Senkron: istasyon Kaydet/Onayla + manuel buton.
+FIREBASE_SYNC_INTERVAL_SEC = 0
+FIREBASE_SYNC_ON_ISTASYON = True
+FIREBASE_CONNECTIVITY_HOST = "www.google.com"
+FIREBASE_CONNECTIVITY_PORT = 443
 
 # Kullanıcı rolleri
 ROLLER = {

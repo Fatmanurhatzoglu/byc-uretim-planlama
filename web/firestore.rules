@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function userData() {
+      return get(/databases/$(database)/documents/byc/v1/kullanicilar/$(request.auth.uid)).data;
+    }
+
+    function hasRole(roles) {
+      return isAuth() && userData().rol in roles;
+    }
+
+    match /byc/v1 {
+      allow read: if isAuth();
+
+      match /kullanicilar/{uid} {
+        allow read: if isAuth() && request.auth.uid == uid;
+        allow write: if false;
+      }
+
+      match /siparisler/{siparisId} {
+        allow read: if isAuth();
+        allow create, delete: if hasRole(['admin', 'ofis']);
+        allow update: if hasRole(['admin', 'ofis', 'saha']);
+
+        match /hareketler/{hareketId} {
+          allow read: if isAuth();
+          allow create: if hasRole(['admin', 'ofis', 'saha']);
+          allow update, delete: if false;
+        }
+      }
+    }
+  }
+}

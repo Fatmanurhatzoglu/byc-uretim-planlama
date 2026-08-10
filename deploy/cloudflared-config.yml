@@ -1,0 +1,15 @@
+# Cloudflare Tunnel yapılandırması
+# Kopyalayın: C:\Users\KULLANICI_ADINIZ\.cloudflared\config.yml
+#
+# Önce: cloudflared tunnel create byc-uretim
+# TUNNEL_ID'yi aşağıya yazın.
+
+tunnel: TUNNEL_ID_BURAYA
+credentials-file: C:\Users\KULLANICI_ADINIZ\.cloudflared\TUNNEL_ID_BURAYA.json
+
+ingress:
+  - hostname: byc.net.tr
+    service: http://localhost:5000
+  - hostname: www.byc.net.tr
+    service: http://localhost:5000
+  - service: http_status:404

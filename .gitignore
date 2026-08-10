@@ -16,8 +16,8 @@ __pycache__/
 venv/
 env/
 .env
-.env.*
-
+.env.local
+.env.*.local
 # IDE / OS
 .idea/
 .vscode/
@@ -27,3 +27,12 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Firebase gizli anahtar — asla commit etme
+firebase-service-account.json
+*-firebase-adminsdk-*.json
+
+# Next.js web
+web/node_modules/
+web/.next/
+web/.env.local
