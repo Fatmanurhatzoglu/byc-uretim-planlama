@@ -6,6 +6,7 @@ import json
 import os
 import random
 import sqlite3
+import uuid
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Optional
@@ -119,6 +120,7 @@ def init_db() -> None:
                 not_metin TEXT NOT NULL DEFAULT '',
                 kullanici TEXT NOT NULL DEFAULT '',
                 zaman TEXT NOT NULL,
+                client_uid TEXT,
                 FOREIGN KEY (siparis_id) REFERENCES siparisler(id) ON DELETE CASCADE
             );
 
@@ -159,6 +161,24 @@ def init_db() -> None:
                 zaman TEXT NOT NULL,
                 veri TEXT NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS sync_outbox (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tur TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                payload TEXT NOT NULL DEFAULT '{}',
+                durum TEXT NOT NULL DEFAULT 'bekliyor',
+                deneme INTEGER NOT NULL DEFAULT 0,
+                hata TEXT NOT NULL DEFAULT '',
+                olusturma TEXT NOT NULL,
+                guncelleme TEXT NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_sync_outbox_durum ON sync_outbox(durum, id);
+
+            CREATE TABLE IF NOT EXISTS sync_meta (
+                anahtar TEXT PRIMARY KEY,
+                deger TEXT NOT NULL
+            );
             """
         )
         # Eski kurulumlara sipariş bazlı fire sütunu ekle
@@ -191,6 +211,23 @@ def init_db() -> None:
                     "INSERT INTO kullanicilar (kullanici_adi, sifre_hash, ad, rol, olusturma) VALUES (?,?,?,?,?)",
                     (ka, generate_password_hash(sf), ad, rol, simdi),
                 )
+
+        # Firebase sync: aşama hareketlerine kalıcı client_uid
+        ah_kolon = {r[1] for r in conn.execute("PRAGMA table_info(asama_hareket)").fetchall()}
+        if "client_uid" not in ah_kolon:
+            conn.execute("ALTER TABLE asama_hareket ADD COLUMN client_uid TEXT")
+        conn.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_asama_client_uid "
+            "ON asama_hareket(client_uid) WHERE client_uid IS NOT NULL AND client_uid != ''"
+        )
+        eksik = conn.execute(
+            "SELECT id FROM asama_hareket WHERE client_uid IS NULL OR client_uid=''"
+        ).fetchall()
+        for row in eksik:
+            conn.execute(
+                "UPDATE asama_hareket SET client_uid=? WHERE id=?",
+                (str(uuid.uuid4()), row["id"]),
+            )
 
     _json_dan_tasi()
     _rodaj_cift_makine_migrate()
@@ -352,7 +389,8 @@ def _ekle_conn(conn, veri: dict, yeni_id: Optional[str] = None) -> str:
          json.dumps(kap, ensure_ascii=False),
          json.dumps(fire, ensure_ascii=False),
          json.dumps(detay, ensure_ascii=False),
-         veri.get("olusturma", simdi), simdi),
+         veri.get("olusturma", simdi),
+         veri.get("guncelleme", simdi) if veri.get("_sync_apply") else simdi),
     )
     return sid
 
@@ -371,9 +409,16 @@ def siparis_getir(siparis_id: str) -> Optional[dict]:
 
 def siparis_ekle(veri: dict) -> dict:
     with baglanti() as conn:
-        sid = _ekle_conn(conn, veri)
+        mevcut_id = str(veri.get("id") or "").strip() or None
+        sid = _ekle_conn(conn, veri, yeni_id=mevcut_id)
         row = conn.execute("SELECT * FROM siparisler WHERE id=?", (sid,)).fetchone()
-    return _satir_to_dict(row)
+    sonuc = _satir_to_dict(row)
+    try:
+        from sync.hooks import siparis_degisti
+        siparis_degisti(sonuc["id"])
+    except Exception:
+        pass
+    return sonuc
 
 
 def siparis_guncelle(siparis_id: str, veri: dict) -> Optional[dict]:
@@ -384,21 +429,40 @@ def siparis_guncelle(siparis_id: str, veri: dict) -> Optional[dict]:
     with baglanti() as conn:
         _ekle_conn(conn, veri, yeni_id=siparis_id)
         row = conn.execute("SELECT * FROM siparisler WHERE id=?", (siparis_id,)).fetchone()
-    return _satir_to_dict(row)
+    sonuc = _satir_to_dict(row)
+    try:
+        from sync.hooks import siparis_degisti
+        siparis_degisti(siparis_id)
+    except Exception:
+        pass
+    return sonuc
 
 
 def siparis_sil(siparis_id: str) -> bool:
     with baglanti() as conn:
         conn.execute("DELETE FROM asama_hareket WHERE siparis_id=?", (siparis_id,))
         cur = conn.execute("DELETE FROM siparisler WHERE id=?", (siparis_id,))
-    return cur.rowcount > 0
+    ok = cur.rowcount > 0
+    if ok:
+        try:
+            from sync.hooks import siparis_silindi
+            siparis_silindi(siparis_id)
+        except Exception:
+            pass
+    return ok
 
 
 def tumunu_sil() -> None:
     with baglanti() as conn:
+        ids = [r["id"] for r in conn.execute("SELECT id FROM siparisler").fetchall()]
         conn.execute("DELETE FROM asama_hareket")
         conn.execute("DELETE FROM siparisler")
-
+    try:
+        from sync.hooks import siparis_silindi
+        for sid in ids:
+            siparis_silindi(sid)
+    except Exception:
+        pass
 
 def parcali_sevk(siparis_id: str, adet: int) -> Optional[dict]:
     sip = siparis_getir(siparis_id)
@@ -553,13 +617,16 @@ def asama_hareket_ekle(
     uyari = asama_sira_uyarisi(ozet, istasyon, tur)
 
     simdi = datetime.now().isoformat(timespec="seconds")
+    yeni_uidler: list[tuple[str, str]] = []  # (client_uid, siparis_id)
     with baglanti() as conn:
+        uid0 = str(uuid.uuid4())
         conn.execute(
             """INSERT INTO asama_hareket
-               (siparis_id, istasyon, tur, adet, neden, not_metin, kullanici, zaman)
-               VALUES (?,?,?,?,?,?,?,?)""",
-            (siparis_id, istasyon, tur, adet, neden.strip(), not_metin.strip(), kullanici, simdi),
+               (siparis_id, istasyon, tur, adet, neden, not_metin, kullanici, zaman, client_uid)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (siparis_id, istasyon, tur, adet, neden.strip(), not_metin.strip(), kullanici, simdi, uid0),
         )
+        yeni_uidler.append((uid0, siparis_id))
         if tur == "cikis" and sonraki_aktar:
             # Paralel Rodaj 1/2: kardeşe aktarma; gruba girişte adedi böl
             hedefler = paralel_giris_hedefleri(rotalar, istasyon)
@@ -568,10 +635,11 @@ def asama_hareket_ekle(
                 for hedef, pay in zip(hedefler, paylar):
                     if pay <= 0:
                         continue
+                    uid = str(uuid.uuid4())
                     conn.execute(
                         """INSERT INTO asama_hareket
-                           (siparis_id, istasyon, tur, adet, neden, not_metin, kullanici, zaman)
-                           VALUES (?,?,?,?,?,?,?,?)""",
+                           (siparis_id, istasyon, tur, adet, neden, not_metin, kullanici, zaman, client_uid)
+                           VALUES (?,?,?,?,?,?,?,?,?)""",
                         (
                             siparis_id,
                             hedef,
@@ -581,13 +649,16 @@ def asama_hareket_ekle(
                             f"Otomatik aktarım ← {istasyon} (paralel)",
                             kullanici,
                             simdi,
+                            uid,
                         ),
                     )
+                    yeni_uidler.append((uid, siparis_id))
             elif len(hedefler) == 1:
+                uid = str(uuid.uuid4())
                 conn.execute(
                     """INSERT INTO asama_hareket
-                       (siparis_id, istasyon, tur, adet, neden, not_metin, kullanici, zaman)
-                       VALUES (?,?,?,?,?,?,?,?)""",
+                       (siparis_id, istasyon, tur, adet, neden, not_metin, kullanici, zaman, client_uid)
+                       VALUES (?,?,?,?,?,?,?,?,?)""",
                     (
                         siparis_id,
                         hedefler[0],
@@ -597,8 +668,10 @@ def asama_hareket_ekle(
                         f"Otomatik aktarım ← {istasyon}",
                         kullanici,
                         simdi,
+                        uid,
                     ),
                 )
+                yeni_uidler.append((uid, siparis_id))
 
         # Durumu Üretimde yap (sevk tamamlanmış değilse)
         if sip.get("durum") in ("Beklemede",):
@@ -606,6 +679,13 @@ def asama_hareket_ekle(
                 "UPDATE siparisler SET durum=?, guncelleme=? WHERE id=?",
                 ("Üretimde", simdi, siparis_id),
             )
+
+    try:
+        from sync.hooks import hareket_eklendi
+        for uid, sid in yeni_uidler:
+            hareket_eklendi(uid, sid)
+    except Exception:
+        pass
 
     sonuc = asama_ozet(siparis_id)
     if sonuc is not None:

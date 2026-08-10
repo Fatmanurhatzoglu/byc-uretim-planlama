@@ -1191,6 +1191,84 @@ $('#btnBolumKaydet')?.addEventListener('click', async () => {
   } catch (err) { toast(err.message, 'error'); }
 });
 
+// ── Firebase senkron ───────────────────────────────────────
+function syncDurumYaz(d) {
+  const chip = $('#btnSyncDurum');
+  const label = $('#syncLabel');
+  const ozet = $('#syncAyarOzet');
+  if (!chip || !label) return;
+  chip.classList.remove('online', 'offline', 'error', 'pending');
+  const bek = d.bekleyen || 0;
+  let cls = 'offline';
+  let txt = 'Çevrimdışı';
+  if (!d.firebase_enabled) {
+    cls = 'error'; txt = 'Sync kapalı';
+  } else if (!d.credentials) {
+    cls = 'error'; txt = 'Anahtar yok';
+  } else if (d.son_hata || d.init_hata) {
+    cls = 'error'; txt = bek ? `Hata · ${bek} bekliyor` : 'Sync hata';
+  } else if (!d.online) {
+    cls = 'offline'; txt = bek ? `Çevrimdışı · ${bek}` : 'Çevrimdışı';
+  } else if (bek > 0) {
+    cls = 'pending'; txt = `${bek} bekliyor`;
+  } else {
+    cls = 'online'; txt = 'Senkron';
+  }
+  chip.classList.add(cls);
+  label.textContent = txt;
+  chip.title = d.son_mesaj || d.son_hata || d.init_hata || txt;
+  if (ozet) {
+    ozet.innerHTML = [
+      `<div><strong>Yol:</strong> ${escHtml(d.path || 'byc/v1')}</div>`,
+      `<div><strong>İnternet:</strong> ${d.online ? 'Var' : 'Yok'}</div>`,
+      `<div><strong>Firebase anahtar:</strong> ${d.credentials ? 'Tamam' : 'Eksik (FIREBASE_KURULUM.md)'}</div>`,
+      `<div><strong>Hazır:</strong> ${d.hazir ? 'Evet' : 'Hayır'}${d.init_hata ? ` — ${escHtml(d.init_hata)}` : ''}</div>`,
+      `<div><strong>Bekleyen:</strong> ${bek} · Hatalı: ${d.hatali || 0}</div>`,
+      `<div><strong>Son seed:</strong> ${escHtml(d.son_seed || '—')}</div>`,
+      `<div><strong>Son sync:</strong> ${escHtml(d.son_sync || '—')}</div>`,
+      `<div><strong>Mesaj:</strong> ${escHtml(d.son_mesaj || d.son_hata || '—')}</div>`,
+    ].join('');
+  }
+}
+
+async function loadSyncDurum() {
+  try {
+    const d = await api('/api/sync/durum');
+    syncDurumYaz(d);
+  } catch (_) { /* login dışı */ }
+}
+
+async function syncSimdi(forceQueue) {
+  try {
+    toast(forceQueue ? 'Yerel kayıtlar kuyruğa alınıyor…' : 'Senkron başlıyor…');
+    const d = await api('/api/sync/now', {
+      method: 'POST',
+      body: JSON.stringify({ force_queue_all: !!forceQueue }),
+    });
+    syncDurumYaz(d);
+    toast(d.mesaj || (d.ok ? 'Senkron tamam' : 'Senkron hatası'), d.ok ? 'success' : 'error');
+    if (d.ok && d.online) await loadSiparisler();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+$('#btnSyncDurum')?.addEventListener('click', () => syncSimdi(false));
+$('#btnSyncNow')?.addEventListener('click', () => syncSimdi(false));
+$('#btnSyncQueueAll')?.addEventListener('click', () => syncSimdi(true));
+$('#btnSyncSeed')?.addEventListener('click', async () => {
+  if (!confirm('Tüm yerel sipariş ve aşama hareketleri Firebase byc/v1 altına yazılsın mı?\n(Mobil/web bu yolu kullanacak)')) return;
+  try {
+    toast('Firebase temiz aktarım başlıyor…');
+    const d = await api('/api/sync/seed', { method: 'POST', body: '{}' });
+    syncDurumYaz({ ...(await api('/api/sync/durum')), son_mesaj: d.mesaj });
+    toast(d.mesaj || 'Aktarım tamam', d.ok ? 'success' : 'error');
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+});
+setInterval(loadSyncDurum, 20000);
+
 // ── AI Kesim Öneri ─────────────────────────────────────────
 async function loadAiKesim(zorla = true) {
   // Her açılışta yeniden hesapla — fire oranı değişince eski sayılar kalmasın
@@ -1589,6 +1667,7 @@ async function init() {
   try {
     $('#simBitis').value = bugunTarih();
     await loadAyarlar(); await loadSiparisler(); await loadBildirimler(); await loadKPI();
+    await loadSyncDurum();
     cizelge = await api('/api/cizelgeleme/son');
     if(cizelge.gunler?.length){ renderGunListesi(); updateDarBogazBadge(); }
   } catch(err) { if(!window.location.pathname.includes('login')) toast(err.message,'error'); }

@@ -17,6 +17,16 @@ pip install -r requirements.txt
 python main.py
 ```
 
+Web arayüz:
+
+```bash
+4-WEB-AC.bat
+```
+
+## Firebase senkron (sipariş + aşama)
+
+İnternetsiz çalışır; bağlantı gelince Firestore’a yazar / çeker. Adımlar: **[FIREBASE_KURULUM.md](FIREBASE_KURULUM.md)**
+
 ## Özellikler
 
 - **Sipariş yönetimi** — müşteri, ürün, ölçü, adet, sevk tarihi, öncelik (Acil/Normal/Düşük)

@@ -6,7 +6,7 @@
   <title>{{ app_title }} v{{ app_version }}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
-  <link rel="stylesheet" href="/static/css/style.css?v=20260807sipfire">
+  <link rel="stylesheet" href="/static/css/style.css?v=20260810fb1">
 </head>
 <body data-rol="{{ kullanici.rol }}">
   <div class="app-shell">
@@ -39,6 +39,10 @@
         <button class="menu-toggle" id="menuToggle">☰</button>
         <h1 id="pageTitle">Fabrika Pano</h1>
         <div class="topbar-actions">
+          <button type="button" class="sync-chip" id="btnSyncDurum" title="Firebase senkron durumu">
+            <span class="sync-dot" id="syncDot"></span>
+            <span id="syncLabel">Senkron…</span>
+          </button>
           <button class="btn btn-success" id="btnYeniSiparisUst">+ Yeni Sipariş</button>
           <button class="btn btn-icon" id="btnBildirim" title="Bildirimler">🔔 <span id="bildirimSayac" class="badge-count hidden">0</span></button>
           <button class="btn btn-outline" id="btnPdfRapor">📄 PDF Rapor</button>
@@ -282,6 +286,16 @@
           <button class="btn btn-success" id="btnBolumKaydet">💾 Bölüm Kapasitesini Kaydet</button>
         </div>
         <div class="card" style="margin-top:16px">
+          <h3>Firebase Senkron (Sipariş + Aşama)</h3>
+          <p class="hint">Sürekli senkron yok. İstasyonda <strong>Kaydet / Onayla</strong> basılınca arka planda bir kez yazar/çeker (internetsiz kayıtlar kuyrukta kalır). İsterseniz aşağıdan manuel tetikleyin. Kurulum: <code>FIREBASE_KURULUM.md</code></p>
+          <div id="syncAyarOzet" class="sync-ayar-ozet">Durum yükleniyor…</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+            <button type="button" class="btn btn-primary" id="btnSyncNow">🔄 Şimdi Senkronla</button>
+            <button type="button" class="btn btn-outline" id="btnSyncQueueAll">📤 Yerel siparişleri kuyruğa al</button>
+            <button type="button" class="btn btn-success" id="btnSyncSeed">☁ Firebase’e temiz aktar (byc/v1)</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
           <h3>Şifre Değiştir</h3>
           <div class="form-group"><label>Yeni Şifre</label><input type="password" id="yeniSifre"></div>
           <button class="btn btn-outline" id="btnSifreDegistir">Şifreyi Güncelle</button>
@@ -479,6 +493,6 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
-  <script src="/static/js/app.js?v=20260810rodaj9"></script>
+  <script src="/static/js/app.js?v=20260810fb3"></script>
 </body>
 </html>

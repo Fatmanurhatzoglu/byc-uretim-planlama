@@ -438,6 +438,25 @@ body {
 /* Yedek */
 .yedek-item { padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 13px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
+/* Firebase sync */
+.sync-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border); background: #fff; color: var(--text);
+  border-radius: 999px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+}
+.sync-chip:hover { border-color: #94a3b8; }
+.sync-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; flex-shrink: 0;
+}
+.sync-chip.online .sync-dot { background: #10b981; }
+.sync-chip.offline .sync-dot { background: #f59e0b; }
+.sync-chip.error .sync-dot { background: #ef4444; }
+.sync-chip.pending .sync-dot { background: #2563eb; }
+.sync-ayar-ozet {
+  font-size: 13px; line-height: 1.5; color: #334155;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
   .sidebar { transform: translateX(-100%); }
