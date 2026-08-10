@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Fr.44 Cam Üretim Formu — {{ siparis.musteri }} / {{ siparis.urun }}</title>
+  <style>
+    @page { size: A4 portrait; margin: 6mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 11.5pt;
+      color: #000;
+      margin: 0;
+      background: #cbd5e1;
+    }
+    .toolbar {
+      position: sticky; top: 0; z-index: 5;
+      background: #0f172a; color: #fff; padding: 10px 14px;
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    }
+    .toolbar button, .toolbar a {
+      background: #2563eb; color: #fff; border: 0; border-radius: 6px;
+      padding: 8px 12px; text-decoration: none; cursor: pointer; font-size: 13px;
+    }
+    .sayfa {
+      width: 198mm;
+      background: #fff;
+      margin: 10px auto;
+      padding: 2mm 3.5mm 2mm;
+      border: 1px solid #64748b;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      color-adjust: exact;
+    }
+
+    /* —— Excel Fr.44 üst şerit —— */
+    .ust-serit {
+      display: grid;
+      grid-template-columns: 32mm 1fr 40mm;
+      gap: 2px;
+      align-items: center;
+      border: 1px solid #000;
+      padding: 2px 3px;
+      min-height: 18mm;
+    }
+    .ust-serit .logo-byc {
+      height: 14mm;
+      width: auto;
+      max-width: 32mm;
+      object-fit: contain;
+      display: block;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .ust-serit .logo-united {
+      height: 15mm;
+      width: auto;
+      max-width: 40mm;
+      object-fit: contain;
+      display: block;
+      margin-left: auto;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .ust-serit .baslik-kutu {
+      text-align: center;
+      padding: 0 2px;
+    }
+    .ust-serit .baslik-kutu h1 {
+      margin: 0;
+      font-size: 17pt;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      line-height: 1.1;
+    }
+    .ust-serit .baslik-kutu .alt {
+      font-size: 9pt;
+      color: #334155;
+      margin-top: 1px;
+    }
+
+    .meta-serit {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 0;
+      border: 1px solid #000;
+      border-top: 0;
+      font-size: 11.5pt;
+    }
+    .meta-serit > div {
+      padding: 2px 5px;
+      border-right: 1px solid #000;
+    }
+    .meta-serit > div:last-child {
+      border-right: 0;
+      padding: 1px 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .meta-serit .qr img { width: 10mm; height: 10mm; display: block; }
+
+    .banner {
+      border: 1px solid #000;
+      border-top: 0;
+      text-align: center;
+      font-weight: 700;
+      font-size: 11.5pt;
+      padding: 2px;
+      background: #f1f5f9;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Çizim alanı — verilen ölçü şeması */
+    .cizim-alan {
+      border: 1px solid #000;
+      border-top: 0;
+      background: #1a1a1a;
+      min-height: 47mm;
+      max-height: 50mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2mm 2mm 9mm;
+      position: relative;
+      overflow: hidden;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      color-adjust: exact;
+    }
+    .cizim-alan img {
+      max-width: 90%;
+      max-height: 40mm;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      display: block;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .cizim-degerler {
+      position: absolute;
+      right: 2px;
+      bottom: 2px;
+      background: #000;
+      color: #ffe566;
+      font-size: 10.5pt;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 2px;
+      border: 1px solid #facc15;
+      line-height: 1.25;
+      font-family: Consolas, "Courier New", monospace;
+      letter-spacing: 0.01em;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      color-adjust: exact;
+    }
+
+    table.sheet {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    table.sheet td, table.sheet th {
+      border: 1px solid #000;
+      padding: 2px 4px;
+      vertical-align: middle;
+      font-size: 11.5pt;
+      line-height: 1.2;
+    }
+    .codes th {
+      text-align: center;
+      font-size: 12pt;
+      font-weight: 700;
+      height: auto;
+      padding: 2px 3px;
+      background: #fff7ed;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .labels th {
+      text-align: center;
+      font-size: 10pt;
+      font-weight: 700;
+      height: auto;
+      padding: 2px 2px;
+      background: #fff;
+    }
+    .vals td {
+      text-align: center;
+      font-size: 12pt;
+      font-weight: 700;
+      height: auto;
+      padding: 2px 3px;
+    }
+    .lbl {
+      text-align: center;
+      font-weight: 700;
+      font-size: 10.5pt;
+      width: 30%;
+      background: #f8fafc;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .val {
+      font-size: 11.5pt;
+      font-weight: 700;
+      min-height: 16px;
+    }
+    .aciklama, .problem {
+      text-align: left;
+      vertical-align: top !important;
+      font-size: 10.5pt;
+      font-weight: 700;
+      white-space: pre-wrap;
+      line-height: 1.25;
+    }
+    .aciklama { height: auto; min-height: 22px; }
+    .problem { height: auto; min-height: 18px; font-size: 10pt; }
+    .teknik {
+      text-align: center;
+      font-size: 11pt;
+      height: auto;
+      padding: 3px;
+      letter-spacing: 0.2px;
+      font-weight: 700;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9pt;
+      margin-top: 2px;
+      color: #111;
+    }
+    .footer small { color: #64748b; font-size: 8.5pt; }
+
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none !important; }
+      .sayfa {
+        margin: 0;
+        border: none;
+        width: auto;
+        padding: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        color-adjust: exact;
+      }
+      .cizim-alan,
+      .cizim-alan img,
+      .cizim-degerler,
+      .ust-serit .logo-byc,
+      .ust-serit .logo-united,
+      .banner,
+      .codes th,
+      .lbl {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button onclick="window.print()">🖨 Yazdır</button>
+    <a href="/">← Siparişler</a>
+    <span style="opacity:.85;font-size:12px">Fr.44 — BYC / UNITED görselleriyle</span>
+  </div>
+
+  {% set d = detay %}
+  {% set kalan = (siparis.adet|int) - (siparis.hazir_adet|int) %}
+  {% set tol = d.tolerans or '±0.3 mm' %}
+  {% set aciklama_metin = d.aciklama or 'BU SAYFADA VEYA TEKNİK RESİMDE TOLERANS BELİRTİLMEDİYSE, BÜTÜN TOLERANSLARI +/-0.3MM KABUL EDİNİZ.\n\nBU SAYFADA VEYA TEKNİK RESİMDE BELİRTİLMEYEN BİR BİLGİ OLURSA SORUMLUYA DANIŞINIZ.' %}
+
+  <section class="sayfa">
+    <!-- Üst: BYC logo | başlık | UNITED logo -->
+    <div class="ust-serit">
+      <div>
+        <img class="logo-byc" src="data:image/png;base64,{{ logo_byc }}" alt="byc group">
+      </div>
+      <div class="baslik-kutu">
+        <h1>CAM ÜRETİM FORMU</h1>
+        <div class="alt">Fr.44 Cam Üretim Formu</div>
+      </div>
+      <div>
+        <img class="logo-united" src="data:image/png;base64,{{ logo_united }}" alt="UNITED">
+      </div>
+    </div>
+
+    <div class="meta-serit">
+      <div>Sipariş No : <strong>{{ siparis.id }}</strong></div>
+      <div>Tarih : <strong>{{ bugun }}</strong></div>
+      <div class="qr">
+        <img src="/api/siparisler/{{ siparis.id }}/qr" alt="QR">
+      </div>
+    </div>
+
+    <div class="banner">CAM ÖLÇÜLERİ VE BİLGİLERİ</div>
+
+    <!-- Verilen CAD ölçü şeması -->
+    <div class="cizim-alan">
+      <img src="data:image/png;base64,{{ olcu_sema }}" alt="Ölçü şeması A B C D R T H">
+      <div class="cizim-degerler">
+        A={{ d.boy or '—' }} &nbsp; B={{ d.en or '—' }} &nbsp; C={{ d.kalinlik or '—' }}
+        &nbsp; D={{ d.cap or '—' }} &nbsp; R={{ d.kose_radiusu or '—' }}
+        &nbsp; T={{ d.kose_kirma or '—' }} &nbsp; H={{ d.delik_capi or '—' }}
+      </div>
+    </div>
+
+    <table class="sheet">
+      <colgroup>
+        <col style="width:14.28%"><col style="width:14.28%"><col style="width:14.28%">
+        <col style="width:14.28%"><col style="width:14.28%"><col style="width:14.28%">
+        <col style="width:14.28%">
+      </colgroup>
+      <tr class="codes">
+        <th>A</th><th>B</th><th>D</th><th>C</th><th>R</th><th>T</th><th>H</th>
+      </tr>
+      <tr class="labels">
+        <th>Boy</th><th>En</th><th>Çap</th><th>Kalınlık</th><th>Köşe Radiusu</th><th>Köşe Kırma</th><th>Delik Çapı</th>
+      </tr>
+      <tr class="vals">
+        <td>{{ d.boy or '' }}</td>
+        <td>{{ d.en or '' }}</td>
+        <td>{{ d.cap or '' }}</td>
+        <td>{{ d.kalinlik or '' }}</td>
+        <td>{{ d.kose_radiusu or '' }}</td>
+        <td>{{ d.kose_kirma or '' }}</td>
+        <td>{{ d.delik_capi or '' }}</td>
+      </tr>
+    </table>
+
+    <table class="sheet" style="border-top:0">
+      <tr>
+        <td class="lbl">CAM TÜRÜ</td>
+        <td class="val" colspan="2">{{ d.cam_turu or '' }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">SİPARİŞ ADEDİ (NET)<br><span style="font-size:8.5pt;font-weight:600">(eksiği olmamalıdır)</span></td>
+        <td class="val" colspan="2">{{ siparis.adet }}{% if kalan != siparis.adet|int %} · kalan {{ kalan }}{% endif %}</td>
+      </tr>
+      <tr>
+        <td class="lbl">SEVK TARİHİ</td>
+        <td class="val" colspan="2">{{ siparis.bitis or '' }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">RODAJ TÜRÜ</td>
+        <td class="val" colspan="2">{{ d.rodaj_turu or '' }}{% if d.rodaj_pay_mm %} (pay: {{ d.rodaj_pay_mm }} mm){% endif %}</td>
+      </tr>
+      <tr>
+        <td class="lbl">KAPLAMA TÜRÜ</td>
+        <td class="val" colspan="2">{{ d.kaplama_turu or '' }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">TOLERANS :</td>
+        <td class="val" colspan="2">{{ tol }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">ÜRÜN KODU :</td>
+        <td class="val" colspan="2">{{ siparis.urun }}</td>
+      </tr>
+      <tr>
+        <td class="lbl">FİRMA SİPARİŞ NO:</td>
+        <td class="val" colspan="2">{{ siparis.musteri }}{% if d.firma_siparis_no %} · {{ d.firma_siparis_no }}{% endif %}</td>
+      </tr>
+      <tr>
+        <td class="aciklama" colspan="3"><strong>AÇIKLAMA:</strong>
+
+{{ aciklama_metin }}</td>
+      </tr>
+      <tr>
+        <td class="problem" colspan="3"><strong>MUSTERIDE YASANAN PROBLEMLER:</strong>         <strong>DIKKAT EDILECEK HUSUSLAR</strong>
+
+{{ d.musteri_problemleri or '' }}</td>
+      </tr>
+      <tr>
+        <td class="teknik" colspan="3">TEKNIK RESIM 2. SAYFADADIR.</td>
+      </tr>
+    </table>
+
+    <div class="footer">
+      <span>Fr.44 Rev . 01</span>
+      <span>{{ bugun }}</span>
+    </div>
+    {% if siparis.rotalar or d.plaka_boy %}
+    <div class="footer" style="margin-top:0">
+      <small>
+        {% if siparis.rotalar %}Proses: {{ siparis.rotalar }}{% endif %}
+        {% if d.plaka_boy %} · Plaka {{ d.plaka_boy }}×{{ d.plaka_en or '' }}{% endif %}
+      </small>
+    </div>
+    {% endif %}
+  </section>
+
+  <script>
+    if (location.search.includes('print=1')) setTimeout(() => window.print(), 500);
+  </script>
+</body>
+</html>

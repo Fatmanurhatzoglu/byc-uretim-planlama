@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>İstasyon — {{ app_title }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/mobile.css?v=istasyon1">
+  <link rel="stylesheet" href="/static/css/istasyon.css?v=3">
+</head>
+<body class="istasyon-body">
+  <header class="mob-header">
+    <h1>🏭 İstasyon</h1>
+    <span id="hdrMakine">Makine seçin</span>
+    <a href="/" id="linkOfis">Ofis</a>
+    <a href="/logout">Çıkış</a>
+  </header>
+
+  <div id="toast" class="mob-toast hidden"></div>
+
+  <!-- Adım 1: Makine seç -->
+  <section class="mob-section" id="ekranMakine">
+    <h2>Bu bilgisayar hangi makine?</h2>
+    <p class="mob-hint">Seçiminiz bu cihazda hatırlanır. Değiştirmek için üstten «Makine değiştir».</p>
+    <div class="makine-grid" id="makineGrid"></div>
+  </section>
+
+  <!-- Adım 2: Sipariş seç -->
+  <section class="mob-section hidden" id="ekranListe">
+    <div class="ist-toolbar">
+      <button type="button" class="btn-ghost" id="btnMakineDegistir">← Makine değiştir</button>
+      <strong id="aktifMakineBaslik"></strong>
+    </div>
+    <input type="search" id="istAra" class="mob-input" placeholder="Müşteri / ürün ara...">
+    <div id="istSiparisList" class="mob-list"></div>
+
+    <h2 style="margin-top:20px">QR Kod Okut</h2>
+    <div id="qrReader"></div>
+    <p class="mob-hint">Sipariş QR’ını okutun veya yukarıdan seçin.</p>
+  </section>
+
+  <!-- Adım 3: Hareket -->
+  <section class="mob-section hidden" id="ekranIslem">
+    <div class="ist-toolbar">
+      <button type="button" class="btn-ghost" id="btnListeyeDon">← Listeye dön</button>
+    </div>
+    <div class="mob-card" id="siparisKart">
+      <strong id="sipMusteri"></strong>
+      <span id="sipUrun"></span>
+      <div class="mob-stats" style="margin-top:12px">
+        <div><span>Stok</span><strong id="sipStok">0</strong></div>
+        <div><span>Gelen</span><strong id="sipGelen">0</strong></div>
+        <div><span>Çıkan</span><strong id="sipCikan">0</strong></div>
+        <div><span>Fire</span><strong id="sipFire">0</strong></div>
+      </div>
+      <p class="mob-hint" id="sipAktif">Aktif: —</p>
+      <div id="kesimPlakaKart" class="kesim-plaka-kart hidden"></div>
+      <div id="kesimSonucKutu" class="kesim-sonuc-kutu hidden"></div>
+    </div>
+
+    <div class="mob-card">
+      <div class="tur-btns" id="turBtnsNormal">
+        <button type="button" class="tur-btn" data-tur="giris">+ Giriş</button>
+        <button type="button" class="tur-btn aktif" data-tur="cikis">✓ İyi çıktı</button>
+        <button type="button" class="tur-btn fire" data-tur="fire">Fire</button>
+      </div>
+      <div class="tur-btns hidden" id="turBtnsKesim">
+        <button type="button" class="tur-btn aktif" data-tur="kesim">✂ Kesim kaydı</button>
+        <button type="button" class="tur-btn fire" data-tur="fire">Fire</button>
+      </div>
+
+      <div class="form-group" id="adetGrupNormal">
+        <label id="lblAdet">Adet</label>
+        <input type="number" id="istAdet" class="mob-input" min="1" value="1" inputmode="numeric">
+      </div>
+
+      <div id="adetGrupKesim" class="hidden">
+        <div class="form-group">
+          <label>Çıkan / kesilen parça adedi</label>
+          <input type="number" id="istParcaAdet" class="mob-input" min="1" value="1" inputmode="numeric">
+          <p class="mob-hint">Varsayılan = kalan ihtiyaç (aşağı çekebilirsiniz)</p>
+          <p id="kesimIhtiyacUyari" class="mob-hint kesim-uyari hidden"></p>
+        </div>
+        <div class="form-group">
+          <label>Raftan alınan plaka</label>
+          <input type="number" id="istPlakaAdet" class="mob-input" min="1" value="1" inputmode="numeric">
+          <p class="mob-hint">Raftan çekilen tam plaka — kullanılmayanlar stoğa iade edilir</p>
+        </div>
+        <div class="kesim-hesap-satir">
+          <div><span>Tüketilecek plaka</span><strong id="kesimTuketilen">0</strong></div>
+          <div><span>Stoğa iade</span><strong id="kesimIade">0</strong></div>
+        </div>
+      </div>
+
+      <div class="form-group hidden" id="istNedenGrup">
+        <label>Fire nedeni</label>
+        <select id="istNeden" class="mob-input"></select>
+      </div>
+      <div class="form-group">
+        <label>Not (opsiyonel)</label>
+        <input type="text" id="istNot" class="mob-input" placeholder="Kısa not">
+      </div>
+      <label class="chk-line" id="aktarSatir">
+        <input type="checkbox" id="istAktar" checked>
+        İyi çıktıda sonraki aşamaya otomatik aktar
+      </label>
+      <button type="button" class="btn-mob" id="btnKaydet">💾 Kaydet</button>
+    </div>
+  </section>
+
+  <script>
+    const MAKINELER = {{ makineler | tojson }};
+    const FIRE_NEDENLERI = {{ fire_nedenleri | tojson }};
+    const KULLANICI = {{ kullanici.kullanici_adi | tojson }};
+  </script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="/static/js/istasyon.js?v=3"></script>
+</body>
+</html>

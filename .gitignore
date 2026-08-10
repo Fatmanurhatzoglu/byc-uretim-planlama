@@ -1,0 +1,29 @@
+# Veri / yedek — GitHub'a gitmesin
+uretim.db
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+yedekler/
+*.zip
+*.bak
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

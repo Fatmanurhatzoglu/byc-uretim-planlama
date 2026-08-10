@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Mobil — {{ app_title }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/mobile.css">
+</head>
+<body>
+  <header class="mob-header">
+    <h1>📱 BYC Saha</h1>
+    <span>{{ kullanici.ad }}</span>
+    <a href="/istasyon">🏭 İstasyon</a>
+    <a href="/logout">Çıkış</a>
+  </header>
+
+  <div id="toast" class="mob-toast hidden"></div>
+
+  <section class="mob-kpi" id="mobKpi"></section>
+
+  <section class="mob-section">
+    <h2>Bugünkü İşler</h2>
+    <div id="bugunIsler" class="mob-list"></div>
+  </section>
+
+  <section class="mob-section">
+    <h2>Hızlı Sevk</h2>
+    <input type="search" id="mobAra" placeholder="Sipariş ara..." class="mob-input">
+    <div id="mobSiparisler" class="mob-list"></div>
+  </section>
+
+  <section class="mob-section">
+    <h2>QR Kod Okut</h2>
+    <div id="qrReader" style="width:100%"></div>
+    <p class="mob-hint">Sipariş QR kodunu okutarak sevk sayfasına gidin.</p>
+  </section>
+
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="/static/js/mobile.js"></script>
+</body>
+</html>

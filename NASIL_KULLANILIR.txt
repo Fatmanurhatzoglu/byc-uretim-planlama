@@ -1,0 +1,64 @@
+╔══════════════════════════════════════════════════════════════╗
+║     BYC WEB ÜRETİM PLANLAMA v7.0 — KULLANIM KILAVUZU        ║
+╚══════════════════════════════════════════════════════════════╝
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  HIZLI BAŞLANGIÇ
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. 3-WEB-KURULUM.bat     → İlk kurulum (1 kez)
+  2. 4-WEB-AC.bat         → Programı aç (her gün)
+  3. Tarayıcıda giriş yap
+
+  GİRİŞ BİLGİLERİ (ilk girişten sonra şifreyi değiştirin!):
+  ┌──────────┬──────────┬─────────────────────────────┐
+  │ Kullanıcı│ Şifre    │ Yetki                       │
+  ├──────────┼──────────┼─────────────────────────────┤
+  │ admin    │ admin123 │ Tam yetki                   │
+  │ ofis     │ ofis123  │ Sipariş + çizelgeleme       │
+  │ saha     │ saha123  │ Sadece sevk (tablet)        │
+  └──────────┴──────────┴─────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DOSYALAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  3-WEB-KURULUM.bat    → İlk kurulum
+  4-WEB-AC.bat         → Web programını başlat
+  5-YEDEK-AL.bat       → Manuel yedek al
+  6-GUNCELLE.bat       → Güncellemeleri yükle
+  7-OTOMATIK-BASLAT.bat→ PC açılınca otomatik başlat
+
+  uretim.db            → Tüm veriler (YEDEKLEYİN!)
+  yedekler/            → Otomatik yedekler
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  TABLET / SAHA KULLANIMI
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. Tablet tarayıcısına: http://[IP-ADRES]:5000/mobile
+  2. saha / saha123 ile giriş
+  3. Siparişe tıkla → sevk gir
+  4. Veya QR kod okut (sipariş listesindeki QR resmi)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  YENİ ÖZELLİKLER (v7.0)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✅ Kullanıcı girişi (3 rol: admin, ofis, saha)
+  ✅ Sipariş üretim aşama takibi (giriş / çıktı / fire)
+  ✅ Otomatik yedekleme (her 24 saatte)
+  ✅ Gelişmiş Gantt + makine bazlı görünüm
+  ✅ PDF haftalık rapor
+  ✅ Mobil/tablet ekranı
+  ✅ İşlem geçmişi log
+  ✅ QR kod ile sevk
+  ✅ Kapasite simülasyonu (what-if)
+  ✅ Dar boğaz bildirimleri
+  ✅ HTTPS desteği (deploy/HTTPS-KURULUM.md)
+  ✅ Otomatik başlatma (7-OTOMATIK-BASLAT.bat)
+  ✅ Güncelleme scripti (6-GUNCELLE.bat)

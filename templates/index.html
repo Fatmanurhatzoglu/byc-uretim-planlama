@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ app_title }} v{{ app_version }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=20260807sipfire">
+</head>
+<body data-rol="{{ kullanici.rol }}">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">⚙</div>
+        <div><strong>BYC Planlama</strong><small>v{{ app_version }}</small></div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-page="dashboard"><span class="nav-icon">📊</span> Pano</button>
+        <button class="nav-item" data-page="siparisler"><span class="nav-icon">📝</span> Siparişler</button>
+        <button class="nav-item" data-page="plaka-stok"><span class="nav-icon">🧱</span> Plaka Stok</button>
+        <button class="nav-item" data-page="cizelgeleme"><span class="nav-icon">📅</span> Çizelgeleme</button>
+        <button class="nav-item" data-page="ai-kesim"><span class="nav-icon">🤖</span> AI Kesim Öneri</button>
+        <button class="nav-item" data-page="gantt"><span class="nav-icon">📈</span> Gantt</button>
+        <button class="nav-item" data-page="simulasyon"><span class="nav-icon">🔮</span> Simülasyon</button>
+        <button class="nav-item" data-page="log"><span class="nav-icon">📋</span> İşlem Geçmişi</button>
+        <button class="nav-item" data-page="ayarlar"><span class="nav-icon">⚙️</span> Ayarlar</button>
+      </nav>
+      <div class="sidebar-footer">
+        <small>{{ kullanici.ad }} ({{ kullanici.rol }})</small>
+        <a href="/mobile" class="sidebar-link">📱 Mobil Görünüm</a>
+        <a href="/istasyon" class="sidebar-link">🏭 İstasyon Ekranı</a>
+        <a href="/logout" class="sidebar-link">🚪 Çıkış</a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle">☰</button>
+        <h1 id="pageTitle">Fabrika Pano</h1>
+        <div class="topbar-actions">
+          <button class="btn btn-success" id="btnYeniSiparisUst">+ Yeni Sipariş</button>
+          <button class="btn btn-icon" id="btnBildirim" title="Bildirimler">🔔 <span id="bildirimSayac" class="badge-count hidden">0</span></button>
+          <button class="btn btn-outline" id="btnPdfRapor">📄 PDF Rapor</button>
+          <button class="btn btn-primary" id="btnCizelgele">⚡ Çizelgele</button>
+        </div>
+      </header>
+
+      <div id="toast" class="toast hidden"></div>
+      <div id="bildirimPanel" class="bildirim-panel hidden"></div>
+
+      <!-- PANo -->
+      <section class="page active" id="page-dashboard">
+        <div class="kpi-grid">
+          <div class="kpi-card"><span class="kpi-label">Toplam</span><span class="kpi-value" id="kpiToplam">0</span></div>
+          <div class="kpi-card warning"><span class="kpi-label">Üretimde</span><span class="kpi-value" id="kpiUretimde">0</span></div>
+          <div class="kpi-card success"><span class="kpi-label">Tamamlanan</span><span class="kpi-value" id="kpiTamamlanan">0</span></div>
+          <div class="kpi-card danger"><span class="kpi-label">Acil</span><span class="kpi-value" id="kpiAcil">0</span></div>
+          <div class="kpi-card"><span class="kpi-label">Kalan Adet</span><span class="kpi-value" id="kpiKalan">0</span></div>
+          <div class="kpi-card" id="kpiPlakaKart"><span class="kpi-label">Plaka Stok</span><span class="kpi-value" id="kpiPlaka">0</span></div>
+        </div>
+        <div id="plakaUyariKutu" class="uyari-kutu hidden" style="margin:12px 0"></div>
+        <div class="card-grid">
+          <div class="card"><h3>Çizelge Uyarıları</h3><div class="dar-bogaz-badge" id="darBogazBadge">Henüz çizelgeleme yok</div></div>
+          <div class="card"><h3>Kapasite Grafiği</h3><canvas id="chartKapasite" height="200"></canvas></div>
+        </div>
+      </section>
+
+      <!-- SİPARİŞLER -->
+      <section class="page" id="page-siparisler">
+        <div class="toolbar">
+          <input type="search" id="aramaInput" placeholder="🔍 Ara..." class="search-input">
+          <select id="filtreDurum" class="select-input"><option value="">Tüm Durumlar</option><option>Beklemede</option><option>Üretimde</option><option>Durduruldu</option><option>Tamamlandı</option></select>
+          <span id="siparisSayac" class="siparis-sayac">0 sipariş</span>
+          <button class="btn btn-outline btn-sm" id="btnFiltreTemizle" title="Filtreleri temizle">✕ Filtreyi Temizle</button>
+          <button class="btn btn-success" id="btnYeniSiparis">+ Yeni Sipariş</button>
+          <label class="btn btn-outline">📥 Excel Al<input type="file" id="excelInput" accept=".xlsx,.xls" hidden></label>
+          <button class="btn btn-outline" id="btnExcelDisari">📤 Excel Aktar</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table"><thead><tr>
+            <th>Müşteri</th><th>Ürün</th><th>Ölçü</th><th>İşlem Sırası</th><th>Aşama</th><th>Toplam</th><th>Sevk</th><th>Kalan</th><th>Öncelik</th><th>Durum</th><th>Hedef</th><th>İşlem</th>
+          </tr></thead>            <tbody id="siparisBody"></tbody></table>
+          <div id="siparisBosMesaj" class="empty-state hidden"></div>
+        </div>
+      </section>
+
+      <!-- PLAKA STOK -->
+      <section class="page" id="page-plaka-stok">
+        <div class="card">
+          <div class="toolbar" style="margin-bottom:12px;padding:0;border:0;background:transparent;box-shadow:none">
+            <h3 style="margin:0;flex:1">Cam Plaka Stoğu</h3>
+            <span id="plakaOzet" class="siparis-sayac">0 plaka</span>
+          </div>
+          <p class="hint">Farklı plaka ölçüsü girebilirsiniz (örn. 3210×2250). <strong>≤10 adet</strong> kırmızı uyarıdır.</p>
+          <div id="plakaDusukUyari" class="uyari-kutu hidden" style="margin-bottom:12px"></div>
+          <div class="form-grid" style="margin-bottom:12px">
+            <div class="form-group"><label>Cam türü</label>
+              <input id="plCamTuru" list="plCamTuruList" value="Düzcam" placeholder="Düzcam, Satine…">
+              <datalist id="plCamTuruList">
+                <option>Düzcam</option><option>Satine</option><option>Kumlu</option>
+                <option>Düşük Demirli</option><option>Extra Clear</option>
+              </datalist>
+            </div>
+            <div class="form-group"><label>Kalınlık (mm)</label><input id="plKalinlik" type="number" step="0.1" min="0.1" value="4"></div>
+            <div class="form-group"><label>Boy (mm)</label><input id="plBoy" type="number" step="1" min="1" value="3210"></div>
+            <div class="form-group"><label>En (mm)</label><input id="plEn" type="number" step="1" min="1" value="2250"></div>
+            <div class="form-group"><label>Adet (+)</label><input id="plAdet" type="number" min="0" value="1"></div>
+            <div class="form-group"><label>Not</label><input id="plNot" placeholder="opsiyonel"></div>
+          </div>
+          <button type="button" class="btn btn-success" id="btnPlakaEkle">+ Stoğa Ekle</button>
+          <div class="table-wrap" style="margin-top:16px">
+            <table class="data-table">
+              <thead><tr>
+                <th>Cam Türü</th><th>Kalınlık</th><th>Boy</th><th>En</th><th>Adet</th><th>m²</th><th>Not</th><th>Güncelleme</th><th></th>
+              </tr></thead>
+              <tbody id="plakaBody"></tbody>
+            </table>
+          </div>
+
+          <h4 class="section-title" style="margin-top:24px">Plaka hareket geçmişi</h4>
+          <p class="hint">Düşümleri buradan geri alabilirsiniz.</p>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr>
+                <th>Zaman</th><th>Tür</th><th>Adet</th><th>Cam</th><th>Ölçü</th><th>Sipariş</th><th>Kullanıcı</th><th>Neden</th><th></th>
+              </tr></thead>
+              <tbody id="plakaHareketBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ÇİZELGELEME -->
+      <section class="page" id="page-cizelgeleme">
+        <div class="cizelge-layout">
+          <div class="card gun-listesi"><h3>Günler</h3><ul id="gunListesi" class="gun-list"></ul></div>
+          <div class="gun-detay">
+            <div class="card"><h3 id="secilenGunBaslik">Gün seçin</h3><div id="dolulukBarlari"></div></div>
+            <div class="card"><h3>İş Listesi</h3>
+              <div class="table-wrap"><table class="data-table"><thead><tr>
+                <th>Sıra</th><th>İstasyon</th><th>Müşteri</th><th>Ürün</th><th>Adet</th><th>Durum</th><th>Doluluk</th>
+              </tr></thead><tbody id="gunDetayBody"></tbody></table></div>
+            </div>
+            <div id="uyariListesi" class="uyari-kutu hidden"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AI KESİM ÖNERİ -->
+      <section class="page" id="page-ai-kesim">
+        <div class="card">
+          <div class="gantt-header">
+            <div>
+              <h3>🤖 AI Kesim Planlama Önerisi</h3>
+              <p class="hint" style="margin:6px 0 0">
+                <strong>Cam günlük hızı</strong> = her camın kendi limiti ·
+                <strong>Bölüm kapasitesi</strong> = kesim bölümünün toplamı (şimdi 1500 adet/gün).
+                Bunlar birbirinden bağımsızdır.
+              </p>
+            </div>
+            <div>
+              <button class="btn btn-primary" id="btnAiKesim">⚡ Öneri Oluştur</button>
+              <button class="btn btn-success" id="btnPlakaDus" title="Planı onayla ve stoktan plaka düş">🧱 Stoktan Düş</button>
+            </div>
+          </div>
+
+          <div class="form-grid" style="margin:16px 0; max-width:520px">
+            <div class="form-group">
+              <label>Kesim Bölümü Kapasitesi (adet/gün)</label>
+              <input type="number" id="aiBolumKap" value="1500" min="1">
+            </div>
+            <div class="form-group">
+              <label>Kaç iş günü planlansın?</label>
+              <input type="number" id="aiGunSayisi" value="15" min="1" max="60">
+            </div>
+          </div>
+
+          <div id="aiOneriKutu" class="ai-oneriler hidden"></div>
+
+          <div class="kpi-grid" id="aiKpi" style="margin:16px 0"></div>
+
+          <h4 class="section-title">1) Cam Sıralaması (fire dahil kesim hedefi)</h4>
+          <p class="hint">Net = sipariş kalanı · Kesilecek = sonraki işlem fire oranları eklendikten sonra · Plaka = 3210×2250 + rodaj payı</p>
+          <div class="kpi-grid" id="aiPlakaKpi" style="margin:8px 0 12px"></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Sıra</th><th>Müşteri</th><th>Ürün / Cam</th>
+                  <th>Net Kalan</th><th>Fire +</th><th>Kesilecek</th>
+                  <th>Fire %</th>
+                  <th>Plaka/parça</th><th>Plaka iht.</th><th>Stok</th><th>Şema</th>
+                  <th>Cam Hızı/gün</th><th>Tahmini Gün</th>
+                  <th>Öncelik</th><th>AI / Fire Notu</th>
+                </tr>
+              </thead>
+              <tbody id="aiSiraBody"></tbody>
+            </table>
+          </div>
+
+          <h4 class="section-title">2) Günlük Kesim Dağılımı</h4>
+          <p class="hint">Her satır: o gün o camdan kaç adet kesilsin. Toplam ≤ bölüm kapasitesi, her cam ≤ kendi hızı.</p>
+          <div id="aiGunlukPlan"></div>
+        </div>
+      </section>
+
+      <!-- GANTT + İŞLEM SIRASI -->
+      <section class="page" id="page-gantt">
+        <div class="card gantt-card">
+          <div class="gantt-header">
+            <h3>İşlem Sırası & Gantt Şeması</h3>
+            <div class="gantt-legend">
+              <span class="legend-item"><span class="dot green"></span>Normal</span>
+              <span class="legend-item"><span class="dot yellow"></span>Yoğun</span>
+              <span class="legend-item"><span class="dot red"></span>Sevk gecikti</span>
+              <span class="legend-item"><span class="dot" style="background:#f97316"></span>Kapasite</span>
+            </div>
+          </div>
+          <div id="ganttEmpty" class="empty-state">Önce üstteki <strong>⚡ Çizelgele</strong> butonuna tıklayın. Sonra işlem sırası burada görünür.</div>
+
+          <div id="islemSirasiPanel" class="hidden">
+            <h4 class="section-title">📋 Sipariş Bazlı İşlem Sırası</h4>
+            <p class="hint">Her siparişin proses sırası ve planlanan günleri. Ok yönü işlem sırasını gösterir.</p>
+            <div id="islemSirasiList"></div>
+          </div>
+
+          <div id="ganttMakineGruplu" class="hidden"></div>
+
+          <div id="ganttTimelineWrap" class="hidden">
+            <h4 class="section-title">📈 Zaman Çizelgesi (Gantt)</h4>
+            <div id="ganttTimeline" class="timeline-gantt"></div>
+          </div>
+
+          <div id="ganttChart" class="gantt-container hidden"></div>
+        </div>
+      </section>
+
+      <!-- SİMÜLASYON -->
+      <section class="page" id="page-simulasyon">
+        <div class="card">
+          <h3>Kapasite Simülasyonu (What-If)</h3>
+          <p class="hint">Yeni sipariş eklemeden "ne olur?" analizi yapın. Veritabanına kaydedilmez.</p>
+          <div class="form-grid">
+            <div class="form-group"><label>Müşteri</label><input id="simMusteri" value="Simülasyon Test"></div>
+            <div class="form-group"><label>Ürün</label><input id="simUrun" value="TEST-001"></div>
+            <div class="form-group"><label>Adet</label><input id="simAdet" type="number" value="2000"></div>
+            <div class="form-group"><label>Sevk Hedefi</label><input id="simBitis" placeholder="GG.AA.YYYY"></div>
+            <div class="form-group"><label>Öncelik</label><select id="simOncelik"><option>Normal</option><option>Acil</option><option>Düşük</option></select></div>
+            <div class="form-group"><label>Rota</label><input id="simRota" value="Kesim, Rodaj 1, Rodaj 2, Isıl Temper"></div>
+          </div>
+          <button class="btn btn-primary" id="btnSimulasyon">🔮 Simülasyonu Çalıştır</button>
+          <div id="simSonuc" class="sim-sonuc hidden"></div>
+        </div>
+      </section>
+
+      <!-- LOG -->
+      <section class="page" id="page-log">
+        <div class="card">
+          <h3>İşlem Geçmişi</h3>
+          <div class="table-wrap">
+            <table class="data-table"><thead><tr><th>Zaman</th><th>Kullanıcı</th><th>İşlem</th><th>Detay</th></tr></thead>
+            <tbody id="logBody"></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- AYARLAR -->
+      <section class="page" id="page-ayarlar">
+        <div class="card">
+          <h3>Varsayılan Kapasiteler (Adet/Gün)</h3>
+          <div class="ayar-grid" id="ayarGrid"></div>
+          <button class="btn btn-success" id="btnAyarKaydet">💾 Kaydet</button>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>Kesim Bölümü Toplam Kapasitesi</h3>
+          <p class="hint">Bu değer siparişe özel “cam günlük hızı”ndan farklıdır. AI burayı bölüm limiti olarak kullanır.</p>
+          <div class="form-group" style="max-width:240px">
+            <label>Kesim bölümü (adet/gün)</label>
+            <input type="number" id="bolumKesimKap" value="1500" min="1">
+          </div>
+          <button class="btn btn-success" id="btnBolumKaydet">💾 Bölüm Kapasitesini Kaydet</button>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <h3>Şifre Değiştir</h3>
+          <div class="form-group"><label>Yeni Şifre</label><input type="password" id="yeniSifre"></div>
+          <button class="btn btn-outline" id="btnSifreDegistir">Şifreyi Güncelle</button>
+        </div>
+        <div class="card admin-only" style="margin-top:16px">
+          <h3>Yedekleme</h3>
+          <button class="btn btn-primary" id="btnYedekAl">💾 Yedek Al</button>
+          <div id="yedekListesi" style="margin-top:12px"></div>
+        </div>
+        <div class="card danger-card admin-only" style="margin-top:16px">
+          <h3>Tehlikeli Bölge</h3>
+          <button class="btn btn-danger" id="btnTumunuSil">Tüm Siparişleri Sil</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay hidden" id="siparisModal">
+    <div class="modal modal-wide">
+      <div class="modal-header"><h2 id="modalBaslik">Yeni Sipariş</h2><button class="modal-close" id="modalKapat">✕</button></div>
+      <form id="siparisForm" class="modal-body">
+        <input type="hidden" id="fId">
+        <div class="form-grid">
+          <div class="form-group"><label>Müşteri *</label><input id="fMusteri" required></div>
+          <div class="form-group"><label>Ürün *</label><input id="fUrun" required></div>
+          <div class="form-group"><label>Ölçü (kısa)</label><input id="fOlcu" placeholder="örn. 400x117.2x4"></div>
+          <div class="form-group"><label>Adet *</label><input id="fAdet" type="number" min="1" required></div>
+          <div class="form-group"><label>Sevk Edilen</label><input id="fHazir" type="number" min="0" value="0"></div>
+          <div class="form-group"><label>Sevk Hedefi *</label><input id="fBitis" required></div>
+          <div class="form-group"><label>Öncelik</label><select id="fOncelik"><option>Normal</option><option>Acil</option><option>Düşük</option></select></div>
+          <div class="form-group"><label>Durum</label><select id="fDurum"><option>Beklemede</option><option>Üretimde</option><option>Durduruldu</option><option>Tamamlandı</option></select></div>
+        </div>
+
+        <h4 style="margin-top:16px">Cam Ölçüleri ve Bilgiler (Fr.44)</h4>
+        <p class="hint" style="margin:4px 0 10px">İş emri / üretim formuna basılır. Zorunlu değildir.</p>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Stoktan plaka seç</label>
+            <select id="fPlakaStok">
+              <option value="">— Plaka seçin (ölçü stoktan gelir) —</option>
+            </select>
+          </div>
+          <div class="form-group"><label>A · Boy (mm)</label><input id="fBoy" inputmode="decimal"></div>
+          <div class="form-group"><label>B · En (mm)</label><input id="fEn" inputmode="decimal"></div>
+          <div class="form-group"><label>D · Çap (mm)</label><input id="fCap" inputmode="decimal"></div>
+          <div class="form-group"><label>C · Kalınlık (mm)</label><input id="fKalinlik" inputmode="decimal"></div>
+          <div class="form-group"><label>R · Köşe Radiusu</label><input id="fKoseR"></div>
+          <div class="form-group"><label>T · Köşe Kırma</label><input id="fKoseT"></div>
+          <div class="form-group"><label>H · Delik Çapı</label><input id="fDelik"></div>
+          <div class="form-group"><label>Cam Türü</label><input id="fCamTuru" placeholder="Düzcam, satine…"></div>
+          <div class="form-group"><label>Rodaj Türü</label><input id="fRodajTuru" placeholder="C Rodaj…"></div>
+          <div class="form-group">
+            <label>Rodaj Payı (mm, her kenara)</label>
+            <input id="fRodajPay" type="number" min="0" step="0.1" value="0" placeholder="örn. 2">
+          </div>
+          <div class="form-group">
+            <label>Plaka kenar boşluğu (mm)</label>
+            <input id="fKenarBosluk" type="number" min="0" step="1" value="20" title="Plakanın dış kenarlarından bırakılan boşluk">
+          </div>
+          <div class="form-group"><label>Kaplama Türü</label><input id="fKaplamaTuru" placeholder="YOK / AR…"></div>
+          <div class="form-group"><label>Tolerans</label><input id="fTolerans" placeholder="±0.3 mm" value="±0.3 mm"></div>
+          <div class="form-group"><label>Firma Sipariş No</label><input id="fFirmaSipNo"></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Açıklama</label><input id="fAciklama"></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Müşteri problemleri / dikkat</label><input id="fMusteriProb"></div>
+        </div>
+        <div id="plakaOnizlemeKutu" style="margin:12px 0 0;padding:12px;background:#f0fdf4;border-radius:8px;color:#14532d">
+          <p class="hint" id="plakaOnizleme" style="margin:0">Boy / en / rodaj girince optimize kesim şeması burada görünür (kenar 20 mm).</p>
+          <div id="plakaSema" style="margin-top:10px"></div>
+          <div id="kesimPlaniKutu" class="hidden" style="margin-top:12px;padding-top:10px;border-top:1px dashed #86efac">
+            <label style="font-size:13px;font-weight:600">AutoCAD / kesim planı <span style="font-weight:400;color:#64748b">(opsiyonel — zorunlu değil)</span></label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">
+              <input type="file" id="fKesimPlani" accept=".dxf,.dwg,.pdf,.png,.jpg,.jpeg,.webp">
+              <button type="button" class="btn btn-sm btn-outline" id="btnKesimPlaniYukle">Yükle</button>
+              <a class="btn btn-sm btn-outline hidden" id="btnKesimPlaniIndir" href="#" target="_blank">İndir</a>
+              <button type="button" class="btn btn-sm btn-danger hidden" id="btnKesimPlaniSil">Sil</button>
+              <span id="kesimPlaniAd" style="font-size:12px;color:#166534"></span>
+            </div>
+            <p class="hint" style="margin:6px 0 0">İsterseniz DXF/DWG/PDF ekleyin. Yoksa sistemin çizdiği şema yeterlidir; sipariş ve stok hesabı dosyasız da çalışır.</p>
+          </div>
+        </div>
+
+        <h4>Proses Rotası</h4>
+        <p class="hint" style="margin:4px 0 10px">
+          <strong>Hız</strong> = günlük adet · <strong>Fire %</strong> = bu siparişe özel.
+          Her satır ayrı makinedir — <strong>Rodaj 1</strong> ve <strong>Rodaj 2</strong> bağımsız işaretlenir (ikisi, biri veya hiçbiri).
+          Fire yazınca yalnızca o satır seçilir. Kaydettikten sonra AI Kesim güncel fire ile yeniden hesaplanır.
+        </p>
+        <div class="rota-grid" id="rotaGrid"></div>
+        <p class="hint fire-onizleme" id="fireOnizleme" style="margin:10px 0 0;padding:10px 12px;background:#eff6ff;border-radius:8px;color:#1e3a8a"></p>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" id="btnRotaTum">Tümünü Seç</button>
+          <button type="button" class="btn btn-outline" id="btnRotaTemizle">Temizle</button>
+          <button type="submit" class="btn btn-success">💾 Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="sevkModal">
+    <div class="modal modal-sm">
+      <div class="modal-header"><h2>Parçalı Sevk</h2><button class="modal-close" id="sevkKapat">✕</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="sevkId">
+        <div class="form-group"><label>Adet</label><input id="sevkAdet" type="number" min="1"></div>
+        <button class="btn btn-success" id="btnSevkOnay" style="width:100%">Sevk Et</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="asamaModal">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h2 id="asamaBaslik">Üretim Aşamaları</h2>
+        <button class="modal-close" id="asamaKapat" type="button">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="asamaSiparisId">
+        <p class="hint" id="asamaOzetSatir"></p>
+        <div class="table-wrap">
+          <table class="data-table" id="asamaTablo">
+            <thead>
+              <tr>
+                <th>#</th><th>İstasyon</th><th>Gelen</th><th>Çıkan</th><th>Fire</th><th>Stok</th><th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody id="asamaBody"></tbody>
+          </table>
+        </div>
+
+        <div class="asama-form card" style="margin-top:16px">
+          <h4>Hareket Kaydet</h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>İstasyon</label>
+              <select id="asamaIstasyon"></select>
+            </div>
+            <div class="form-group">
+              <label>Tür</label>
+              <select id="asamaTur">
+                <option value="giris">Giriş (aşamaya geldi)</option>
+                <option value="cikis">İyi çıktı → sonraki</option>
+                <option value="fire">Fire / ayrılan</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Adet</label>
+              <input type="number" id="asamaAdet" min="1" value="1">
+            </div>
+            <div class="form-group" id="asamaNedenGrup">
+              <label>Fire nedeni</label>
+              <select id="asamaNeden"></select>
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label>Not (opsiyonel)</label>
+              <input type="text" id="asamaNot" placeholder="Kısa açıklama">
+            </div>
+          </div>
+          <button type="button" class="btn btn-success" id="btnAsamaKaydet">💾 Kaydet</button>
+        </div>
+
+        <h4 style="margin-top:20px">Son hareketler</h4>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Zaman</th><th>İstasyon</th><th>Tür</th><th>Adet</th><th>Neden</th><th>Not</th><th>Kullanıcı</th></tr></thead>
+            <tbody id="asamaHareketBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kesim şeması modal -->
+  <div class="modal-overlay hidden" id="kesimSemaModal">
+    <div class="modal modal-wide">
+      <div class="modal-header">
+        <h2 id="kesimSemaBaslik">Kesim Şeması</h2>
+        <button class="modal-close" id="kesimSemaKapat">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="hint" id="kesimSemaOzet"></p>
+        <div id="kesimSemaSvg"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn btn-primary" id="btnKesimSemaYazdir">🖨 Yazdır</button>
+          <a class="btn btn-outline hidden" id="kesimSemaCadIndir" href="#" target="_blank">AutoCAD planını indir</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MAKINELER = {{ makineler | tojson }};
+    const FIRE_NEDENLERI = {{ fire_nedenleri | tojson }};
+    const KULLANICI_ROL = "{{ kullanici.rol }}";
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/frappe-gantt@0.6.1/dist/frappe-gantt.min.js"></script>
+  <script src="/static/js/app.js?v=20260810rodaj9"></script>
+</body>
+</html>

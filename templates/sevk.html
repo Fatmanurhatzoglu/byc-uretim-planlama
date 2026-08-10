@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sevk — {{ siparis.musteri }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/mobile.css">
+</head>
+<body>
+  <header class="mob-header"><h1>📦 Sevk</h1><a href="/mobile">← Geri</a></header>
+  <div class="mob-card">
+    <h2>{{ siparis.musteri }}</h2>
+    <p><strong>{{ siparis.urun }}</strong> — {{ siparis.olcu or '-' }}</p>
+    <div class="mob-stats">
+      <div><span>Toplam</span><strong>{{ siparis.adet }}</strong></div>
+      <div><span>Sevk Edilen</span><strong id="sevkEdilen">{{ siparis.hazir_adet }}</strong></div>
+      <div><span>Kalan</span><strong id="sevkKalan">{{ (siparis.adet|int) - (siparis.hazir_adet|int) }}</strong></div>
+    </div>
+    <div class="form-group"><label>Sevk Adedi</label><input type="number" id="sevkAdet" class="mob-input" min="1"></div>
+    <button class="btn-mob" id="btnSevk">Sevk Et</button>
+    <div id="toast" class="mob-toast hidden"></div>
+  </div>
+  <script>
+    const SIPARIS_ID = "{{ siparis.id }}";
+  </script>
+  <script src="/static/js/sevk.js"></script>
+</body>
+</html>
