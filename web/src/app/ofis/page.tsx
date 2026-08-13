@@ -37,6 +37,7 @@ function OfisContent() {
   const [rota, setRota] = useState<string[]>([...VARSAYILAN_ROTA]);
 
   useEffect(() => {
+    // Sadece gerçek saha rolü ofisten çıkarılsın (admin/ofis e-posta resolveProfil ile korunur)
     if (profil && profil.rol === "saha") {
       router.replace("/mobile");
     }
@@ -96,6 +97,7 @@ function OfisContent() {
           {profil?.ad || profil?.kullanici_adi}
           {profil?.rol ? ` (${profil.rol})` : ""}
         </span>
+        <Link href="/ofis">📋 Ofis</Link>
         <Link href="/istasyon">🏭 İstasyon</Link>
         <Link href="/mobile">📱 Saha</Link>
         <button

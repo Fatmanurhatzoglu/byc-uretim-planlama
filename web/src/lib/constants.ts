@@ -64,3 +64,31 @@ export function rolFromKullaniciAdi(kullaniciAdi: string): "admin" | "ofis" | "s
   if (u === "ofis") return "ofis";
   return "saha";
 }
+
+/** Firestore profil + e-posta — admin/ofis e-posta her zaman ofis yetkisi alır */
+export function resolveProfil(
+  email: string,
+  remote: KullaniciProfil | null,
+): KullaniciProfil {
+  const ka = emailToKullaniciAdi(email || "");
+  const emailRol = rolFromKullaniciAdi(ka);
+  if (emailRol === "admin" || emailRol === "ofis") {
+    return {
+      kullanici_adi: remote?.kullanici_adi || ka,
+      ad: remote?.ad || (emailRol === "admin" ? "Yönetici" : "Ofis"),
+      rol: emailRol,
+    };
+  }
+  if (remote?.rol) {
+    return {
+      kullanici_adi: remote.kullanici_adi || ka,
+      ad: remote.ad || ka,
+      rol: remote.rol,
+    };
+  }
+  return { kullanici_adi: ka, ad: ka, rol: "saha" };
+}
+
+export function isOfisRol(rol?: string | null): boolean {
+  return rol === "admin" || rol === "ofis";
+}

@@ -75,10 +75,13 @@ export default function LoginPage() {
         </form>
         <div className="login-hint">
           <p>
-            Doğru adres: <code>https://byc-uretim.vercel.app</code>
+            Site: <code>https://byc-uretim.vercel.app</code>
           </p>
           <p>
-            <strong>ofis</strong> / <strong>admin</strong> → Ofis · <strong>saha</strong> → Saha
+            Ofis için kullanıcı adı: <strong>ofis</strong> veya <strong>admin</strong>
+          </p>
+          <p>
+            Doğrudan ofis: <code>/ofis</code>
           </p>
         </div>
       </div>
