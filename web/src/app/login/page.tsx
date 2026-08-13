@@ -5,16 +5,13 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 
 export default function LoginPage() {
-  const { login, user, profil, loading, configHata } = useAuth();
+  const { login, user, loading } = useAuth();
   const router = useRouter();
   const [hata, setHata] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) {
-      // Hep menüye — kullanıcı Ofis / İstasyon / Saha seçsin
-      router.replace("/");
-    }
+    if (!loading && user) router.replace("/mobile");
   }, [user, loading, router]);
 
   async function onSubmit(e: FormEvent) {
@@ -26,20 +23,13 @@ export default function LoginPage() {
     const sifre = String(fd.get("sifre") || "");
     try {
       await login(kullaniciAdi, sifre);
-      router.replace("/");
+      router.replace("/mobile");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "";
-      if (msg.includes("auth/unauthorized-domain") || msg.includes("unauthorized-domain")) {
-        setHata(
-          "Bu site adresi Firebase'de yetkili değil. Console → Authentication → Settings → Authorized domains: byc-uretim.vercel.app ekleyin.",
-        );
-      } else if (msg.includes("auth/invalid-credential") || msg.includes("auth/wrong-password") || msg.includes("auth/user-not-found")) {
-        setHata("Kullanıcı adı veya şifre hatalı.");
-      } else if (msg.includes("auth/network-request-failed")) {
-        setHata("Ağ hatası — interneti kontrol edin.");
-      } else {
-        setHata(msg || "Giriş başarısız. Kullanıcı adı ve şifreyi kontrol edin.");
-      }
+      setHata(
+        err instanceof Error
+          ? "Giriş başarısız. Kullanıcı adı ve şifreyi kontrol edin."
+          : "Giriş hatası",
+      );
     } finally {
       setBusy(false);
     }
@@ -53,7 +43,6 @@ export default function LoginPage() {
           <h1>BYC Üretim Planlama</h1>
           <p>Devam etmek için giriş yapın</p>
         </div>
-        {configHata && <div className="login-error">{configHata}</div>}
         {hata && <div className="login-error">{hata}</div>}
         <form onSubmit={onSubmit}>
           <div className="form-group">
@@ -64,20 +53,16 @@ export default function LoginPage() {
             <label>Şifre</label>
             <input name="sifre" type="password" className="mob-input" required />
           </div>
-          <button type="submit" className="login-btn" disabled={busy || !!configHata}>
+          <button type="submit" className="login-btn" disabled={busy}>
             {busy ? "Giriş yapılıyor…" : "Giriş Yap"}
           </button>
         </form>
         <div className="login-hint">
           <p>
-            Site: <code>https://byc-uretim.vercel.app</code>
+            <strong>Firebase giriş:</strong> kullanıcı adı olarak{" "}
+            <code>admin</code> yazın (e-posta: admin@byc.net.tr).
           </p>
-          <p>
-            Ofis için kullanıcı adı: <strong>ofis</strong> veya <strong>admin</strong>
-          </p>
-          <p>
-            Doğrudan ofis: <code>/ofis</code>
-          </p>
+          <p>İlk kurulumda Firebase Console&apos;dan kullanıcı oluşturun.</p>
         </div>
       </div>
     </div>

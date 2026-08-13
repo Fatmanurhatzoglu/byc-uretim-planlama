@@ -5,33 +5,11 @@ Next.js uygulaması: mobil sevk, istasyon takibi, sipariş listesi.
 
 ## Kurulum
 
-### 1. Firebase Web App (config nerede?)
+### 1. Firebase Web App
 
-1. https://console.firebase.google.com açın → proje **byc-uretim**
-2. Sol üstte dişli **⚙️ Project settings** (Proje ayarları)
-3. Üstteki sekmelerden **General** (Genel)
-4. Sayfayı **aşağı kaydırın** → **Your apps** / **Uygulamalarınız**
-5. Web uygulaması yoksa:
-   - `</>` (Web) ikonuna tıklayın
-   - App nickname: `byc-web`
-   - **Register app** / **Uygulamayı kaydet**
-6. Ekranda şu blok çıkar (**Firebase SDK snippet** → **Config** seçili olsun):
-
-```js
-const firebaseConfig = {
-  apiKey: "AIza...",
-  authDomain: "byc-uretim.firebaseapp.com",
-  projectId: "byc-uretim",
-  storageBucket: "byc-uretim.firebasestorage.app",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
-};
-```
-
-Bu 6 değeri kopyalayacaksınız.  
-Zaten web app varsa: aynı **Your apps** listesinde web uygulamasına tıklayın → **Config** görünür.
-
-> Not: Bu config **gizli service account JSON değil**. Web `apiKey` istemci tarafında normaldir.
+1. https://console.firebase.google.com → proje **byc-uretim**
+2. Project settings → **Add app** → Web
+3. Config değerlerini kopyalayın
 
 ### 2. Ortam değişkenleri
 

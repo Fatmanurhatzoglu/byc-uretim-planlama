@@ -12,14 +12,10 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-export function firebaseConfigEksik(): boolean {
-  return !firebaseConfig.apiKey || !firebaseConfig.projectId;
-}
-
 function assertConfig() {
-  if (firebaseConfigEksik()) {
+  if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
     throw new Error(
-      "Firebase yapılandırması eksik. Vercel Environment Variables kontrol edin.",
+      "Firebase yapılandırması eksik. web/.env.local dosyasını oluşturun (bkz. .env.example).",
     );
   }
 }

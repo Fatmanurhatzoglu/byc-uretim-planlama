@@ -7,32 +7,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function emailLower() {
-      return request.auth.token.email == null
-        ? ''
-        : request.auth.token.email.lower();
-    }
-
-    function isOfisEmail() {
-      return emailLower() == 'admin@byc.net.tr'
-        || emailLower() == 'ofis@byc.net.tr';
-    }
-
-    function userDocExists() {
-      return exists(/databases/$(database)/documents/byc/v1/kullanicilar/$(request.auth.uid));
-    }
-
     function userData() {
       return get(/databases/$(database)/documents/byc/v1/kullanicilar/$(request.auth.uid)).data;
     }
 
     function hasRole(roles) {
-      return isAuth() && (
-        (userDocExists() && userData().rol in roles)
-        || ('admin' in roles && emailLower() == 'admin@byc.net.tr')
-        || ('ofis' in roles && (emailLower() == 'ofis@byc.net.tr' || emailLower() == 'admin@byc.net.tr'))
-        || ('saha' in roles && isAuth())
-      );
+      return isAuth() && userData().rol in roles;
     }
 
     match /byc/v1 {
@@ -45,7 +25,7 @@ service cloud.firestore {
 
       match /siparisler/{siparisId} {
         allow read: if isAuth();
-        allow create, delete: if hasRole(['admin', 'ofis']) || isOfisEmail();
+        allow create, delete: if hasRole(['admin', 'ofis']);
         allow update: if hasRole(['admin', 'ofis', 'saha']);
 
         match /hareketler/{hareketId} {

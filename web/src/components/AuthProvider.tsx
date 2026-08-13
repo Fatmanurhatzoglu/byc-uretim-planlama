@@ -15,8 +15,8 @@ import {
   signOut,
   type User,
 } from "firebase/auth";
-import { firebaseConfigEksik, getFirebaseAuth } from "@/lib/firebase";
-import { kullaniciAdiToEmail, resolveProfil } from "@/lib/constants";
+import { getFirebaseAuth } from "@/lib/firebase";
+import { emailToKullaniciAdi, kullaniciAdiToEmail } from "@/lib/constants";
 import { getKullaniciProfil } from "@/lib/firestore";
 import type { KullaniciProfil } from "@/lib/types";
 
@@ -24,7 +24,6 @@ interface AuthState {
   user: User | null;
   profil: KullaniciProfil | null;
   loading: boolean;
-  configHata: string | null;
   login: (kullaniciAdi: string, sifre: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -35,43 +34,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profil, setProfil] = useState<KullaniciProfil | null>(null);
   const [loading, setLoading] = useState(true);
-  const [configHata, setConfigHata] = useState<string | null>(null);
 
   useEffect(() => {
-    if (firebaseConfigEksik()) {
-      setConfigHata(
-        "Firebase ayarları eksik. Vercel → Settings → Environment Variables.",
-      );
+    const auth = getFirebaseAuth();
+    return onAuthStateChanged(auth, async (u) => {
+      setUser(u);
+      if (u) {
+        const p = await getKullaniciProfil(u.uid);
+        setProfil(
+          p || {
+            kullanici_adi: emailToKullaniciAdi(u.email || ""),
+            ad: emailToKullaniciAdi(u.email || ""),
+            rol: "saha",
+          },
+        );
+      } else {
+        setProfil(null);
+      }
       setLoading(false);
-      return;
-    }
-    try {
-      const auth = getFirebaseAuth();
-      return onAuthStateChanged(auth, async (u) => {
-        setUser(u);
-        if (u) {
-          let remote: KullaniciProfil | null = null;
-          try {
-            remote = await getKullaniciProfil(u.uid);
-          } catch {
-            remote = null;
-          }
-          setProfil(resolveProfil(u.email || "", remote));
-        } else {
-          setProfil(null);
-        }
-        setLoading(false);
-      });
-    } catch (e) {
-      setConfigHata(e instanceof Error ? e.message : "Firebase başlatılamadı");
-      setLoading(false);
-    }
+    });
   }, []);
 
   const login = useCallback(async (kullaniciAdi: string, sifre: string) => {
-    if (firebaseConfigEksik()) {
-      throw new Error("Firebase yapılandırması eksik.");
-    }
     const email = kullaniciAdiToEmail(kullaniciAdi);
     await signInWithEmailAndPassword(getFirebaseAuth(), email, sifre);
   }, []);
@@ -81,8 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, profil, loading, configHata, login, logout }),
-    [user, profil, loading, configHata, login, logout],
+    () => ({ user, profil, loading, login, logout }),
+    [user, profil, loading, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

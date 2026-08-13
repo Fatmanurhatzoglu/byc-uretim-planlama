@@ -38,12 +38,6 @@ export const FIRE_NEDENLERI = [
 export const ROLLER = ["admin", "ofis", "saha"] as const;
 export type Rol = (typeof ROLLER)[number];
 
-export type ProfilOzet = {
-  kullanici_adi: string;
-  ad: string;
-  rol: Rol;
-};
-
 /** Firebase Auth e-posta formatı: admin → admin@byc.net.tr */
 export const AUTH_EMAIL_DOMAIN = "byc.net.tr";
 
@@ -55,46 +49,4 @@ export function kullaniciAdiToEmail(kullaniciAdi: string): string {
 
 export function emailToKullaniciAdi(email: string): string {
   return email.split("@")[0] || email;
-}
-
-/** Giriş sonrası varsayılan sayfa */
-export function homePathForRol(rol?: string | null): string {
-  if (rol === "admin" || rol === "ofis") return "/ofis";
-  return "/mobile";
-}
-
-/** Profil yoksa e-postadan makul rol */
-export function rolFromKullaniciAdi(kullaniciAdi: string): Rol {
-  const u = kullaniciAdi.trim().toLowerCase();
-  if (u === "admin") return "admin";
-  if (u === "ofis") return "ofis";
-  return "saha";
-}
-
-/** Firestore profil + e-posta — admin/ofis e-posta her zaman ofis yetkisi alır */
-export function resolveProfil(
-  email: string,
-  remote: ProfilOzet | null,
-): ProfilOzet {
-  const ka = emailToKullaniciAdi(email || "");
-  const emailRol = rolFromKullaniciAdi(ka);
-  if (emailRol === "admin" || emailRol === "ofis") {
-    return {
-      kullanici_adi: remote?.kullanici_adi || ka,
-      ad: remote?.ad || (emailRol === "admin" ? "Yönetici" : "Ofis"),
-      rol: emailRol,
-    };
-  }
-  if (remote?.rol) {
-    return {
-      kullanici_adi: remote.kullanici_adi || ka,
-      ad: remote.ad || ka,
-      rol: remote.rol,
-    };
-  }
-  return { kullanici_adi: ka, ad: ka, rol: "saha" };
-}
-
-export function isOfisRol(rol?: string | null): boolean {
-  return rol === "admin" || rol === "ofis";
 }
