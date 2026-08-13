@@ -38,6 +38,12 @@ export const FIRE_NEDENLERI = [
 export const ROLLER = ["admin", "ofis", "saha"] as const;
 export type Rol = (typeof ROLLER)[number];
 
+export type ProfilOzet = {
+  kullanici_adi: string;
+  ad: string;
+  rol: Rol;
+};
+
 /** Firebase Auth e-posta formatı: admin → admin@byc.net.tr */
 export const AUTH_EMAIL_DOMAIN = "byc.net.tr";
 
@@ -58,7 +64,7 @@ export function homePathForRol(rol?: string | null): string {
 }
 
 /** Profil yoksa e-postadan makul rol */
-export function rolFromKullaniciAdi(kullaniciAdi: string): "admin" | "ofis" | "saha" {
+export function rolFromKullaniciAdi(kullaniciAdi: string): Rol {
   const u = kullaniciAdi.trim().toLowerCase();
   if (u === "admin") return "admin";
   if (u === "ofis") return "ofis";
@@ -68,8 +74,8 @@ export function rolFromKullaniciAdi(kullaniciAdi: string): "admin" | "ofis" | "s
 /** Firestore profil + e-posta — admin/ofis e-posta her zaman ofis yetkisi alır */
 export function resolveProfil(
   email: string,
-  remote: KullaniciProfil | null,
-): KullaniciProfil {
+  remote: ProfilOzet | null,
+): ProfilOzet {
   const ka = emailToKullaniciAdi(email || "");
   const emailRol = rolFromKullaniciAdi(ka);
   if (emailRol === "admin" || emailRol === "ofis") {
