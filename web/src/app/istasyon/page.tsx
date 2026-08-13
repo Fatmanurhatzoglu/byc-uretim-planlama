@@ -154,6 +154,7 @@ function IstasyonContent() {
       <header className="mob-header">
         <h1>🏭 İstasyon</h1>
         <span>{seciliMakine || "Makine seçin"}</span>
+        <Link href="/">🏠 Menü</Link>
         <Link href="/ofis">📋 Ofis</Link>
         <Link href="/mobile">📱 Saha</Link>
         <button type="button" className="link-btn" onClick={() => logout().then(() => router.push("/login"))}>

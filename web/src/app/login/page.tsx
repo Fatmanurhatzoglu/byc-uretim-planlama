@@ -3,7 +3,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { homePathForRol } from "@/lib/constants";
 
 export default function LoginPage() {
   const { login, user, profil, loading, configHata } = useAuth();
@@ -12,10 +11,11 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user && profil) {
-      router.replace(homePathForRol(profil.rol));
+    if (!loading && user) {
+      // Hep menüye — kullanıcı Ofis / İstasyon / Saha seçsin
+      router.replace("/");
     }
-  }, [user, profil, loading, router]);
+  }, [user, loading, router]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -26,12 +26,7 @@ export default function LoginPage() {
     const sifre = String(fd.get("sifre") || "");
     try {
       await login(kullaniciAdi, sifre);
-      const rol =
-        kullaniciAdi.trim().toLowerCase() === "admin" ||
-        kullaniciAdi.trim().toLowerCase() === "ofis"
-          ? kullaniciAdi.trim().toLowerCase()
-          : "saha";
-      router.replace(homePathForRol(rol));
+      router.replace("/");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       if (msg.includes("auth/unauthorized-domain") || msg.includes("unauthorized-domain")) {

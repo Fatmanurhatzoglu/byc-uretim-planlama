@@ -27,6 +27,7 @@ function OfisContent() {
   const [arama, setArama] = useState("");
   const [busy, setBusy] = useState(false);
   const [formAcik, setFormAcik] = useState(false);
+  const ofisYetki = profil?.rol === "admin" || profil?.rol === "ofis";
 
   const [musteri, setMusteri] = useState("");
   const [urun, setUrun] = useState("");
@@ -36,13 +37,7 @@ function OfisContent() {
   const [oncelik, setOncelik] = useState("Normal");
   const [rota, setRota] = useState<string[]>([...VARSAYILAN_ROTA]);
 
-  useEffect(() => {
-    // Sadece gerçek saha rolü ofisten çıkarılsın (admin/ofis e-posta resolveProfil ile korunur)
-    if (profil && profil.rol === "saha") {
-      router.replace("/mobile");
-    }
-  }, [profil, router]);
-
+  // Artık saha kullanıcıyı ofisten atma — liste herkese açık, kayıt ofis/admin
   useEffect(() => {
     return subscribeSiparisler(setSiparisler, (e) => show(e.message));
   }, [show]);
@@ -97,7 +92,7 @@ function OfisContent() {
           {profil?.ad || profil?.kullanici_adi}
           {profil?.rol ? ` (${profil.rol})` : ""}
         </span>
-        <Link href="/ofis">📋 Ofis</Link>
+        <Link href="/">🏠 Menü</Link>
         <Link href="/istasyon">🏭 İstasyon</Link>
         <Link href="/mobile">📱 Saha</Link>
         <button
@@ -118,21 +113,24 @@ function OfisContent() {
             value={arama}
             onChange={(e) => setArama(e.target.value)}
           />
-          <button
-            type="button"
-            className="login-btn ofis-yeni-btn"
-            onClick={() => setFormAcik((v) => !v)}
-          >
-            {formAcik ? "Formu kapat" : "+ Yeni sipariş"}
-          </button>
+          {ofisYetki ? (
+            <button
+              type="button"
+              className="login-btn ofis-yeni-btn"
+              onClick={() => setFormAcik((v) => !v)}
+            >
+              {formAcik ? "Formu kapat" : "+ Yeni sipariş"}
+            </button>
+          ) : (
+            <p className="mob-hint">Sipariş eklemek için ofis/admin ile giriş yapın.</p>
+          )}
         </div>
         <p className="mob-hint">
-          Buradan eklenen siparişler anında Firebase&apos;e yazılır; istasyon ekranı
-          aynı listeden görür. (PC&apos;deki Gantt/Excel hâlâ yerel Flask&apos;ta.)
+          Buradan eklenen siparişler Firebase&apos;e yazılır; istasyon aynı listeden görür.
         </p>
       </section>
 
-      {formAcik && (
+      {formAcik && ofisYetki && (
         <section className="mob-section ofis-form-card">
           <h2>Yeni sipariş</h2>
           <form onSubmit={kaydet} className="ofis-form">
