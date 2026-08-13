@@ -154,11 +154,23 @@ function IstasyonContent() {
       <header className="mob-header">
         <h1>🏭 İstasyon</h1>
         <span>{seciliMakine || "Makine seçin"}</span>
+        <Link href="/ofis">📋 Ofis / Yönetici</Link>
         <Link href="/mobile">Saha</Link>
         <button type="button" className="link-btn" onClick={() => logout().then(() => router.push("/login"))}>
           Çıkış
         </button>
       </header>
+      {(profil?.rol === "admin" || profil?.rol === "ofis") && (
+        <section className="mob-section">
+          <a
+            href="/ofis"
+            className="login-btn"
+            style={{ display: "block", textAlign: "center", textDecoration: "none" }}
+          >
+            📋 Yönetici / Ofis paneline git
+          </a>
+        </section>
+      )}
 
       {ekran === "makine" && (
         <section className="mob-section">

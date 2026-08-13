@@ -17,13 +17,6 @@ function MobileContent() {
   const [siparisler, setSiparisler] = useState<Siparis[]>([]);
   const [arama, setArama] = useState("");
 
-  // Yönetici yanlışlıkla sahaya düşerse ofise al
-  useEffect(() => {
-    if (profil?.rol === "admin" || profil?.rol === "ofis") {
-      window.location.replace("/ofis");
-    }
-  }, [profil]);
-
   useEffect(() => {
     return subscribeSiparisler(setSiparisler, (e) => show(e.message));
   }, [show]);
