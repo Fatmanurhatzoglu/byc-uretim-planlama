@@ -37,6 +37,9 @@ function MobileContent() {
       <header className="mob-header">
         <h1>📱 BYC Saha</h1>
         <span>{profil?.ad || profil?.kullanici_adi}</span>
+        {(profil?.rol === "admin" || profil?.rol === "ofis") && (
+          <Link href="/ofis">📋 Ofis</Link>
+        )}
         <Link href="/istasyon">🏭 İstasyon</Link>
         <button type="button" className="link-btn" onClick={() => logout().then(() => router.push("/login"))}>
           Çıkış

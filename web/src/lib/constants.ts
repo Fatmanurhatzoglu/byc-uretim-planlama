@@ -50,3 +50,17 @@ export function kullaniciAdiToEmail(kullaniciAdi: string): string {
 export function emailToKullaniciAdi(email: string): string {
   return email.split("@")[0] || email;
 }
+
+/** Giriş sonrası varsayılan sayfa */
+export function homePathForRol(rol?: string | null): string {
+  if (rol === "admin" || rol === "ofis") return "/ofis";
+  return "/mobile";
+}
+
+/** Profil yoksa e-postadan makul rol */
+export function rolFromKullaniciAdi(kullaniciAdi: string): "admin" | "ofis" | "saha" {
+  const u = kullaniciAdi.trim().toLowerCase();
+  if (u === "admin") return "admin";
+  if (u === "ofis") return "ofis";
+  return "saha";
+}

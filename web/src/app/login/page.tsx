@@ -3,16 +3,19 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { homePathForRol } from "@/lib/constants";
 
 export default function LoginPage() {
-  const { login, user, loading } = useAuth();
+  const { login, user, profil, loading } = useAuth();
   const router = useRouter();
   const [hata, setHata] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) router.replace("/mobile");
-  }, [user, loading, router]);
+    if (!loading && user && profil) {
+      router.replace(homePathForRol(profil.rol));
+    }
+  }, [user, profil, loading, router]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -23,13 +26,15 @@ export default function LoginPage() {
     const sifre = String(fd.get("sifre") || "");
     try {
       await login(kullaniciAdi, sifre);
-      router.replace("/mobile");
-    } catch (err) {
-      setHata(
-        err instanceof Error
-          ? "Giriş başarısız. Kullanıcı adı ve şifreyi kontrol edin."
-          : "Giriş hatası",
-      );
+      // profil onAuthStateChanged ile gelecek; yine de rol tahmin et
+      const rol =
+        kullaniciAdi.trim().toLowerCase() === "admin" ||
+        kullaniciAdi.trim().toLowerCase() === "ofis"
+          ? kullaniciAdi.trim().toLowerCase()
+          : "saha";
+      router.replace(homePathForRol(rol));
+    } catch {
+      setHata("Giriş başarısız. Kullanıcı adı ve şifreyi kontrol edin.");
     } finally {
       setBusy(false);
     }
@@ -59,10 +64,11 @@ export default function LoginPage() {
         </form>
         <div className="login-hint">
           <p>
-            <strong>Firebase giriş:</strong> kullanıcı adı olarak{" "}
-            <code>admin</code> yazın (e-posta: admin@byc.net.tr).
+            <strong>ofis</strong> / <strong>admin</strong> → Ofis sipariş ekranı
           </p>
-          <p>İlk kurulumda Firebase Console&apos;dan kullanıcı oluşturun.</p>
+          <p>
+            <strong>saha</strong> → Saha / istasyon
+          </p>
         </div>
       </div>
     </div>

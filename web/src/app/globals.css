@@ -405,3 +405,57 @@ a {
   color: #92400e;
   margin-bottom: 12px;
 }
+
+/* Ofis */
+.ofis-header {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ofis-toolbar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ofis-yeni-btn {
+  width: auto;
+  padding: 12px 16px;
+  white-space: nowrap;
+}
+
+.ofis-form-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.ofis-form .form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.rota-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rota-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.ofis-siparis-card {
+  cursor: default;
+  text-align: left;
+}

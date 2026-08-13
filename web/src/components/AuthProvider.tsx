@@ -16,7 +16,11 @@ import {
   type User,
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
-import { emailToKullaniciAdi, kullaniciAdiToEmail } from "@/lib/constants";
+import {
+  emailToKullaniciAdi,
+  kullaniciAdiToEmail,
+  rolFromKullaniciAdi,
+} from "@/lib/constants";
 import { getKullaniciProfil } from "@/lib/firestore";
 import type { KullaniciProfil } from "@/lib/types";
 
@@ -40,12 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (u) {
+        const ka = emailToKullaniciAdi(u.email || "");
         const p = await getKullaniciProfil(u.uid);
         setProfil(
           p || {
-            kullanici_adi: emailToKullaniciAdi(u.email || ""),
-            ad: emailToKullaniciAdi(u.email || ""),
-            rol: "saha",
+            kullanici_adi: ka,
+            ad: ka,
+            rol: rolFromKullaniciAdi(ka),
           },
         );
       } else {
