@@ -17,6 +17,13 @@ function MobileContent() {
   const [siparisler, setSiparisler] = useState<Siparis[]>([]);
   const [arama, setArama] = useState("");
 
+  // Yönetici yanlışlıkla sahaya düşerse ofise al
+  useEffect(() => {
+    if (profil?.rol === "admin" || profil?.rol === "ofis") {
+      window.location.replace("/ofis");
+    }
+  }, [profil]);
+
   useEffect(() => {
     return subscribeSiparisler(setSiparisler, (e) => show(e.message));
   }, [show]);
@@ -37,6 +44,7 @@ function MobileContent() {
       <header className="mob-header">
         <h1>📱 BYC Saha</h1>
         <span>{profil?.ad || profil?.kullanici_adi}</span>
+        <Link href="/ofis">📋 Ofis</Link>
         <Link href="/istasyon">🏭 İstasyon</Link>
         <button type="button" className="link-btn" onClick={() => logout().then(() => router.push("/login"))}>
           Çıkış

@@ -11,11 +11,16 @@ export default function LoginPage() {
   const [hata, setHata] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Zaten girişliyse bir kez yönlendir (form submit ile yarışmasın)
   useEffect(() => {
+    if (busy) return;
     if (!loading && user && profil) {
-      router.replace(homePathForRol(profil.rol));
+      const hedef = homePathForRol(profil.rol);
+      if (typeof window !== "undefined" && window.location.pathname === "/login") {
+        window.location.replace(hedef);
+      }
     }
-  }, [user, profil, loading, router]);
+  }, [user, profil, loading, busy]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -26,7 +31,9 @@ export default function LoginPage() {
     const sifre = String(fd.get("sifre") || "");
     try {
       await login(kullaniciAdi, sifre);
-      router.replace(homePathForRol(rolFromEmailOrKullanici(kullaniciAdi)));
+      const hedef = homePathForRol(rolFromEmailOrKullanici(kullaniciAdi));
+      // Hard redirect — Next router /mobile yarışını engeller
+      window.location.replace(hedef);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       if (msg.includes("unauthorized-domain")) {
@@ -41,7 +48,6 @@ export default function LoginPage() {
       } else {
         setHata(msg || "Giriş başarısız.");
       }
-    } finally {
       setBusy(false);
     }
   }
@@ -77,10 +83,13 @@ export default function LoginPage() {
         </form>
         <div className="login-hint">
           <p>
-            Yönetici: <code>fatmanur@byc.net.tr</code> → Ofis paneli
+            Yönetici: <code>fatmanur@byc.net.tr</code>
           </p>
           <p>
-            Doğrudan: <code>/ofis</code>
+            Panel:{" "}
+            <a href="/ofis" style={{ color: "#2563eb" }}>
+              /ofis
+            </a>
           </p>
         </div>
       </div>
