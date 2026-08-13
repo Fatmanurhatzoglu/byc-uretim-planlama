@@ -36,23 +36,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    return onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
-        const p = await getKullaniciProfil(u.uid);
-        setProfil(
-          p || {
-            kullanici_adi: emailToKullaniciAdi(u.email || ""),
-            ad: emailToKullaniciAdi(u.email || ""),
-            rol: "saha",
-          },
-        );
-      } else {
-        setProfil(null);
-      }
+    let unsub: (() => void) | undefined;
+    try {
+      const auth = getFirebaseAuth();
+      unsub = onAuthStateChanged(auth, async (u) => {
+        setUser(u);
+        if (u) {
+          try {
+            const p = await getKullaniciProfil(u.uid);
+            setProfil(
+              p || {
+                kullanici_adi: emailToKullaniciAdi(u.email || ""),
+                ad: emailToKullaniciAdi(u.email || ""),
+                rol: "saha",
+              },
+            );
+          } catch {
+            setProfil({
+              kullanici_adi: emailToKullaniciAdi(u.email || ""),
+              ad: emailToKullaniciAdi(u.email || ""),
+              rol: "saha",
+            });
+          }
+        } else {
+          setProfil(null);
+        }
+        setLoading(false);
+      });
+    } catch {
+      // Config yok / Firebase açılamadı — sonsuz "Yönlendiriliyor" olmasın
+      setUser(null);
+      setProfil(null);
       setLoading(false);
-    });
+    }
+    return () => {
+      if (unsub) unsub();
+    };
   }, []);
 
   const login = useCallback(async (kullaniciAdi: string, sifre: string) => {
