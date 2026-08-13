@@ -3,16 +3,19 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { homePathForRol, rolFromEmailOrKullanici } from "@/lib/constants";
 
 export default function LoginPage() {
-  const { login, user, loading } = useAuth();
+  const { login, user, profil, loading } = useAuth();
   const router = useRouter();
   const [hata, setHata] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) router.replace("/mobile");
-  }, [user, loading, router]);
+    if (!loading && user && profil) {
+      router.replace(homePathForRol(profil.rol));
+    }
+  }, [user, profil, loading, router]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -23,13 +26,21 @@ export default function LoginPage() {
     const sifre = String(fd.get("sifre") || "");
     try {
       await login(kullaniciAdi, sifre);
-      router.replace("/mobile");
+      router.replace(homePathForRol(rolFromEmailOrKullanici(kullaniciAdi)));
     } catch (err) {
-      setHata(
-        err instanceof Error
-          ? "Giriş başarısız. Kullanıcı adı ve şifreyi kontrol edin."
-          : "Giriş hatası",
-      );
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("unauthorized-domain")) {
+        setHata("Site domain Firebase Authorized domains listesinde değil.");
+      } else if (
+        msg.includes("invalid-credential") ||
+        msg.includes("wrong-password") ||
+        msg.includes("user-not-found") ||
+        msg.includes("invalid-email")
+      ) {
+        setHata("E-posta veya şifre hatalı.");
+      } else {
+        setHata(msg || "Giriş başarısız.");
+      }
     } finally {
       setBusy(false);
     }
@@ -41,13 +52,20 @@ export default function LoginPage() {
         <div className="login-brand">
           <div className="brand-icon">⚙</div>
           <h1>BYC Üretim Planlama</h1>
-          <p>Devam etmek için giriş yapın</p>
+          <p>Yönetici / saha girişi</p>
         </div>
         {hata && <div className="login-error">{hata}</div>}
         <form onSubmit={onSubmit}>
           <div className="form-group">
-            <label>Kullanıcı Adı</label>
-            <input name="kullanici_adi" className="mob-input" required autoFocus />
+            <label>E-posta veya kullanıcı adı</label>
+            <input
+              name="kullanici_adi"
+              className="mob-input"
+              required
+              autoFocus
+              placeholder="fatmanur@byc.net.tr"
+              defaultValue="fatmanur@byc.net.tr"
+            />
           </div>
           <div className="form-group">
             <label>Şifre</label>
@@ -59,10 +77,11 @@ export default function LoginPage() {
         </form>
         <div className="login-hint">
           <p>
-            <strong>Firebase giriş:</strong> kullanıcı adı olarak{" "}
-            <code>admin</code> yazın (e-posta: admin@byc.net.tr).
+            Yönetici: <code>fatmanur@byc.net.tr</code> → Ofis paneli
           </p>
-          <p>İlk kurulumda Firebase Console&apos;dan kullanıcı oluşturun.</p>
+          <p>
+            Doğrudan: <code>/ofis</code>
+          </p>
         </div>
       </div>
     </div>

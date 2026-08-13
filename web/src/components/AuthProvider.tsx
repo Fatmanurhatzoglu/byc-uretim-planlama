@@ -16,7 +16,11 @@ import {
   type User,
 } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
-import { emailToKullaniciAdi, kullaniciAdiToEmail } from "@/lib/constants";
+import {
+  emailToKullaniciAdi,
+  kullaniciAdiToEmail,
+  rolFromEmailOrKullanici,
+} from "@/lib/constants";
 import { getKullaniciProfil } from "@/lib/firestore";
 import type { KullaniciProfil } from "@/lib/types";
 
@@ -30,6 +34,25 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+function profilBirleştir(email: string, remote: KullaniciProfil | null): KullaniciProfil {
+  const ka = emailToKullaniciAdi(email);
+  const emailRol = rolFromEmailOrKullanici(email || ka);
+  if (emailRol === "admin" || emailRol === "ofis") {
+    return {
+      kullanici_adi: remote?.kullanici_adi || ka,
+      ad: remote?.ad || (ka === "fatmanur" ? "Fatmanur" : ka),
+      rol: emailRol,
+    };
+  }
+  return (
+    remote || {
+      kullanici_adi: ka,
+      ad: ka,
+      rol: "saha",
+    }
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profil, setProfil] = useState<KullaniciProfil | null>(null);
@@ -42,29 +65,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsub = onAuthStateChanged(auth, async (u) => {
         setUser(u);
         if (u) {
+          let remote: KullaniciProfil | null = null;
           try {
-            const p = await getKullaniciProfil(u.uid);
-            setProfil(
-              p || {
-                kullanici_adi: emailToKullaniciAdi(u.email || ""),
-                ad: emailToKullaniciAdi(u.email || ""),
-                rol: "saha",
-              },
-            );
+            remote = await getKullaniciProfil(u.uid);
           } catch {
-            setProfil({
-              kullanici_adi: emailToKullaniciAdi(u.email || ""),
-              ad: emailToKullaniciAdi(u.email || ""),
-              rol: "saha",
-            });
+            remote = null;
           }
+          setProfil(profilBirleştir(u.email || "", remote));
         } else {
           setProfil(null);
         }
         setLoading(false);
       });
     } catch {
-      // Config yok / Firebase açılamadı — sonsuz "Yönlendiriliyor" olmasın
       setUser(null);
       setProfil(null);
       setLoading(false);

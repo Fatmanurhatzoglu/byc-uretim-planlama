@@ -4,10 +4,8 @@ import {
   getDoc,
   getDocs,
   onSnapshot,
-  query,
   setDoc,
   updateDoc,
-  where,
   writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
@@ -87,16 +85,79 @@ export function subscribeSiparisler(
   onData: (siparisler: Siparis[]) => void,
   onError?: (e: Error) => void,
 ): Unsubscribe {
-  const q = query(siparislerCol(), where("deleted", "==", false));
   return onSnapshot(
-    q,
+    siparislerCol(),
     (snap) => {
-      const list = snap.docs.map((d) => docToSiparis(d.id, d.data()));
+      const list = snap.docs
+        .map((d) => docToSiparis(d.id, d.data()))
+        .filter((s) => !s.deleted);
       list.sort((a, b) => (b.guncelleme || "").localeCompare(a.guncelleme || ""));
       onData(list);
     },
     (err) => onError?.(err),
   );
+}
+
+function yeniSiparisId(): string {
+  const d = new Date();
+  const pad = (n: number, len = 2) => String(n).padStart(len, "0");
+  const stamp =
+    pad(d.getDate()) +
+    pad(d.getMonth() + 1) +
+    d.getFullYear() +
+    pad(d.getHours()) +
+    pad(d.getMinutes()) +
+    pad(d.getSeconds());
+  return stamp + String(Math.floor(100 + Math.random() * 900));
+}
+
+export type SiparisOlusturGirdi = {
+  musteri: string;
+  urun: string;
+  olcu?: string;
+  adet: number;
+  bitis: string;
+  oncelik?: string;
+  rotalar: string[] | string;
+};
+
+export async function siparisEkle(girdi: SiparisOlusturGirdi): Promise<Siparis> {
+  const musteri = (girdi.musteri || "").trim();
+  const urun = (girdi.urun || "").trim().toUpperCase();
+  const adet = Number(girdi.adet) || 0;
+  if (!musteri) throw new Error("Müşteri zorunlu.");
+  if (!urun) throw new Error("Ürün zorunlu.");
+  if (adet <= 0) throw new Error("Adet 1 veya daha büyük olmalı.");
+  const rota_listesi = normalizeRota(girdi.rotalar);
+  if (!rota_listesi.length) throw new Error("En az bir işlem (rota) seçin.");
+
+  const id = yeniSiparisId();
+  const simdi = new Date().toISOString().slice(0, 19);
+  const rotalar = rota_listesi.join(", ");
+  const data = {
+    schema_version: FIREBASE_SCHEMA_VERSION,
+    id,
+    musteri,
+    urun,
+    olcu: (girdi.olcu || "").trim(),
+    adet,
+    hazir_adet: 0,
+    kalan_adet: adet,
+    bitis: (girdi.bitis || "").trim(),
+    durum: "Beklemede",
+    oncelik: girdi.oncelik || "Normal",
+    rotalar,
+    rota_listesi,
+    istasyon_kapasiteleri: {},
+    fire_oranlari: {},
+    uretim_detay: {},
+    olusturma: simdi,
+    guncelleme: simdi,
+    deleted: false,
+    source: "web-ofis",
+  };
+  await setDoc(doc(siparislerCol(), id), data);
+  return docToSiparis(id, data);
 }
 
 export async function getSiparis(id: string): Promise<Siparis | null> {
@@ -259,12 +320,12 @@ export async function hareketEkle(
 }
 
 export async function istasyonSiparisleri(makine: string): Promise<IstasyonSiparis[]> {
-  const snap = await getDocs(query(siparislerCol(), where("deleted", "==", false)));
+  const snap = await getDocs(siparislerCol());
   const sonuc: IstasyonSiparis[] = [];
 
   for (const d of snap.docs) {
     const sip = docToSiparis(d.id, d.data());
-    if (sip.durum === "Tamamlandı") continue;
+    if (sip.deleted || sip.durum === "Tamamlandı") continue;
     const rotalar = sip.rota_listesi.length ? sip.rota_listesi : normalizeRota(sip.rotalar);
     if (makine && !rotalar.includes(makine)) continue;
 

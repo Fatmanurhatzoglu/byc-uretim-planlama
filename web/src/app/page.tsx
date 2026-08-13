@@ -4,33 +4,29 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { homePathForRol } from "@/lib/constants";
 
 export default function HomePage() {
-  const { user, loading } = useAuth();
+  const { user, profil, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading) {
-      router.replace(user ? "/mobile" : "/login");
+      if (!user) router.replace("/login");
+      else router.replace(homePathForRol(profil?.rol));
       return;
     }
-    // Auth takılırsa kullanıcı mahsur kalmasın
-    const t = setTimeout(() => {
-      router.replace("/login");
-    }, 4000);
+    const t = setTimeout(() => router.replace("/login"), 4000);
     return () => clearTimeout(t);
-  }, [user, loading, router]);
+  }, [user, profil, loading, router]);
 
   return (
     <div className="loading-screen">
       <p>Yönlendiriliyor…</p>
       <p style={{ marginTop: 16 }}>
-        <Link href="/login">Giriş sayfasına git →</Link>
-      </p>
-      <p style={{ marginTop: 8 }}>
-        <Link href="/istasyon">İstasyon →</Link>
+        <Link href="/login">Giriş →</Link>
         {" · "}
-        <Link href="/mobile">Saha →</Link>
+        <Link href="/ofis">Yönetici panel →</Link>
       </p>
     </div>
   );

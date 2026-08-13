@@ -7,25 +7,45 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function emailLower() {
+      return request.auth.token.email == null
+        ? ''
+        : request.auth.token.email.lower();
+    }
+
+    function isAdminEmail() {
+      return emailLower() == 'fatmanur@byc.net.tr'
+        || emailLower() == 'admin@byc.net.tr'
+        || emailLower() == 'ofis@byc.net.tr';
+    }
+
+    function userDocExists() {
+      return exists(/databases/$(database)/documents/byc/v1/kullanicilar/$(request.auth.uid));
+    }
+
     function userData() {
       return get(/databases/$(database)/documents/byc/v1/kullanicilar/$(request.auth.uid)).data;
     }
 
     function hasRole(roles) {
-      return isAuth() && userData().rol in roles;
+      return isAuth() && (
+        (userDocExists() && userData().rol in roles)
+        || (isAdminEmail() && ('admin' in roles || 'ofis' in roles))
+        || ('saha' in roles && isAuth())
+      );
     }
 
     match /byc/v1 {
       allow read: if isAuth();
 
       match /kullanicilar/{uid} {
-        allow read: if isAuth() && request.auth.uid == uid;
+        allow read: if isAuth() && (request.auth.uid == uid || isAdminEmail());
         allow write: if false;
       }
 
       match /siparisler/{siparisId} {
         allow read: if isAuth();
-        allow create, delete: if hasRole(['admin', 'ofis']);
+        allow create, delete: if hasRole(['admin', 'ofis']) || isAdminEmail();
         allow update: if hasRole(['admin', 'ofis', 'saha']);
 
         match /hareketler/{hareketId} {
